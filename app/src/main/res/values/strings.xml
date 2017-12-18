@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">P2PBLE</string>
+    <string name="app_name">Trilateration</string>
+    <string name="title_activity_group_creation">GroupCreation</string>
 </resources>

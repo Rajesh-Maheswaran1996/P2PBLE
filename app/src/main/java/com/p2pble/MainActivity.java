@@ -2,112 +2,101 @@ package com.p2pble;
 
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
-import android.net.wifi.WpsInfo;
-import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
-import android.os.Handler;
+import android.os.Build;
+import android.os.Bundle;
+import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.ExpandableListAdapter;
+import android.widget.ExpandableListView;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
-
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-
     private static final int MY_PERMISSIONS_REQUEST_READ_CONTACTS = 0;
+    private static String TAG="ACT";
+    WifiManager wMan;
+    List<ScanResult> wifiList;
+    TextView tv;
+    StringBuilder sb;
+    ExpandableListAdapter listAdapter;
+    ExpandableListView expListView;
+    List<String> listDataHeader;
+    HashMap<String, List<String>> listDataChild;
     private static final int REQUEST_ENABLE_BT = 0;
-    private final IntentFilter intentFilter = new IntentFilter();
-    private WifiP2pManager mManager;
-    private WifiP2pManager.Channel mChannel;
-    private StringBuilder sb;
-    private WifiManager wMan;
+    HashMap<String,Integer> macrssi ;
+    private static int CODE_WRITE_SETTINGS_PERMISSION;
+    private static WifiP2pManager mManager;
+    private static WifiP2pManager.Channel mChannel;
     private WifiP2pManager wpMan;
-    private TextView tx;
-    List<WifiP2pDevice> devlist =new ArrayList<>();
-    private RadioGroup g1;
-
-    private LinearLayout ll;
+    private android.content.IntentFilter intentFilter;
+    private BluetoothAdapter mBluetoothAdapter;
+    private WifiP2pDeviceList devlist;
     WifiP2pManager.PeerListListener plist=new WifiP2pManager.PeerListListener() {
         @Override
         public void onPeersAvailable(WifiP2pDeviceList wifiP2pDeviceList) {
-            ll=(LinearLayout)findViewById(R.id.a1);
-            tx=(TextView)findViewById(R.id.tx1);
             WifiP2pDevice dev;
+           devlist=wifiP2pDeviceList;
+            listDataHeader = new ArrayList<String>();
+            listDataChild = new HashMap<String, List<String>>();
             wMan.startScan();
             Iterator<WifiP2pDevice> i= wifiP2pDeviceList.getDeviceList().iterator();
-            tx.setText("Devices Available :\n");
-            devlist.clear();
-            ll.removeAllViews();
-            g1=new RadioGroup(MainActivity.this);
-            ll.addView(g1);
+            List<String>info = new ArrayList<>();
             while(i.hasNext()){
-                dev=i.next();
-                devlist.add(dev);
-                tx.setText(tx.getText().toString()+dev.deviceName+"\n");
-                Log.d("Hello",dev.toString());
-                    RadioButton c1 = new RadioButton(MainActivity.this);
-                    c1.setText(dev.deviceName);
-                    g1.addView(c1);
-
-                //Toast.makeText(MainActivity.this,dev.toString(), Toast.LENGTH_SHORT).show();
-                /*
-                if(dev.deviceName.equals("AMUDA4")){
-                    WifiP2pConfig config = new WifiP2pConfig();
-                    config.deviceAddress = dev.deviceAddress;
-                    config.wps.setup = WpsInfo.PBC;
-                    mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
-                        @Override
-                        public void onSuccess() {
-                            // WiFiDirectBroadcastReceiver will notify us. Ignore for now.
-                            Toast.makeText(MainActivity.this, "Connected to AMUDA1", Toast.LENGTH_SHORT).show();
-                        }
-                        @Override
-                        public void onFailure(int reason) {
-                            Toast.makeText(MainActivity.this, "Connect failed. Retry.",
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                }
-                */
+                info = new ArrayList<>();
+            dev=i.next();
+            info.add(dev.deviceAddress);
+            listDataHeader.add(dev.deviceName);
+            listDataChild.put(dev.deviceName, info);
             }
+            listAdapter = new com.p2pble.ExpandableListAdapter(MainActivity.this, listDataHeader, listDataChild);
+            expListView.setAdapter(listAdapter);
         }
     };
-    private WifiP2pDevice dev;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        // BluetoothAdapter mBluetoothAdapter;
-// Initializes Bluetooth adapter.
         final BluetoothManager bluetoothManager =
                 (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
 
-    checkpermissions();
-        tx=(TextView)findViewById(R.id.tx1);
+
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        setTitle("Available Hosts");
+        checkpermissions();
+
+        boolean permission;
+        Context context=getApplicationContext();
+        mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
+        mChannel = mManager.initialize(this, getMainLooper(), null);
+        wMan = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        wpMan = (WifiP2pManager) getApplicationContext().getSystemService(Context.WIFI_P2P_SERVICE);
+         final IntentFilter intentFilter = new IntentFilter();
 
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
 
@@ -117,10 +106,8 @@ public class MainActivity extends AppCompatActivity {
 
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
-        mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
-        mChannel = mManager.initialize(this, getMainLooper(), null);
-        wMan = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        wpMan = (WifiP2pManager) getApplicationContext().getSystemService(Context.WIFI_P2P_SERVICE);
+        macrssi=new HashMap<String, Integer>();
+        expListView=(ExpandableListView)findViewById(R.id.el1);
         p2pReceiver p2prec = new p2pReceiver();
         registerReceiver(p2prec,intentFilter);
         mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
@@ -131,10 +118,27 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(int i) {
+                Toast.makeText(MainActivity.this, "Peer Discovery Failed", Toast.LENGTH_SHORT).show();
 
             }
         });
-    scanLeDevice(true);
+disconnect();
+
+    }
+    void ref(View view) {
+        //Snackbar.make(findViewById(R.id.R2), "Wifi Search Initiated", Snackbar.LENGTH_SHORT).show();
+      //  wMan.startScan();
+    }
+
+    void addgroup(View view)
+    {
+        ref(view);
+        Bundle b = new Bundle();
+        //b.putSerializable("wifiList", (Serializable) wifiList);
+        Intent in = new Intent(this,GroupCreation.class);
+        //b.putSerializable("macrssi",macrssi);
+        in.putExtras(b);
+        startActivity(in);
     }
 
     class p2pReceiver extends BroadcastReceiver {
@@ -165,138 +169,105 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-void checkpermissions(){
-    if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
-        Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-        startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-    }
+    class wifiReceiver extends BroadcastReceiver {
 
-    if (ContextCompat.checkSelfPermission(this,
-            Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED) {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // TODO: This method is called when the BroadcastReceiver is receiving
+            sb = new StringBuilder();
+            listDataHeader = new ArrayList<String>();
+            listDataChild = new HashMap<String, List<String>>();
+            //wifiList = wMan.getScanResults();
+            sb.append("\n        Number Of Wifi connections :"+wifiList.size()+"\n\n");
+            //List<List<String>> tot = new ArrayList<List<String>>();
+            //Toast.makeText(context, "Scanned"+wifiList.size(), Toast.LENGTH_SHORT).show();
+            Log.d("TAG","Scanned");
 
-        // Should we show an explanation?
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                Manifest.permission.ACCESS_FINE_LOCATION)) {
+            for(int i = 0; i < wifiList.size(); i++){
+                String ssi=wifiList.get(i).SSID;
+                Boolean b =ssi.equals("HelloMoto");
+                Log.d("WiFiList",ssi+b.toString());
+                List<String> info=new ArrayList<String>();
+                listDataHeader.add((i+1)+"."+wifiList.get(i).SSID);
+                info.add("MAC:"+wifiList.get(i).BSSID);
+                info.add("RSSI:"+wifiList.get(i).level);
+                //Log.d("TXP:",wifiList.get(i).toString());
+                // Toast.makeText(context, wifiList.get(i).toString(), Toast.LENGTH_SHORT).show();
+                macrssi.put(wifiList.get(i).BSSID,wifiList.get(i).level);
+                listDataChild.put(listDataHeader.get(i), info);
 
-            // Show an explanation to the user *asynchronously* -- don't block
-            // this thread waiting for the user's response! After the user
-            // sees the explanation, try again to request the permission.
-
-        } else {
-
-            // No explanation needed, we can request the permission.
-
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                    MY_PERMISSIONS_REQUEST_READ_CONTACTS);
-
-            // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-            // app-defined int constant. The callback method gets the
-            // result of the request.
+            }
+            listAdapter = new com.p2pble.ExpandableListAdapter(context, listDataHeader, listDataChild);
+            expListView.setAdapter(listAdapter);
         }
     }
-}
-void p2pcon(View view)
-{
-    int radioButtonID = g1.getCheckedRadioButtonId();
-    RadioButton radioButton =(RadioButton) g1.findViewById(radioButtonID);
-    final String info= radioButton.getText().toString();
-    Iterator i =devlist.iterator();
-    while (i.hasNext())
-    {
-        dev=(WifiP2pDevice) i.next();
-        if(dev.deviceName.equals(info))
-        {
-            WifiP2pConfig config = new WifiP2pConfig();
-            config.deviceAddress = dev.deviceAddress;
-            config.wps.setup = WpsInfo.PBC;
-            mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
+    void host(View view){
+
+        Intent in = new Intent(this,host.class);
+        startActivity(in);
+
+    }
+    void checkpermissions(){
+
+        if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+        }
+        if (wMan == null || !wMan.isWifiEnabled()) {
+            wMan=(WifiManager)getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            wMan.setWifiEnabled(true);
+
+        }
+
+
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.ACCESS_FINE_LOCATION)) {
+
+                // Show an explanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_READ_CONTACTS);
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+        }
+    }
+    public static void disconnect() {
+        if (mManager != null && mChannel != null) {
+            mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
                 @Override
-                public void onSuccess() {
-                    // WiFiDirectBroadcastReceiver will notify us. Ignore for now.
-                    Toast.makeText(MainActivity.this, "Connected to "+info, Toast.LENGTH_SHORT).show();
-                }
-                @Override
-                public void onFailure(int reason) {
-                    Toast.makeText(MainActivity.this, "Connect failed. Retry.",
-                            Toast.LENGTH_SHORT).show();
+                public void onGroupInfoAvailable(WifiP2pGroup group) {
+                    if (group != null && mManager != null && mChannel != null
+                            && group.isGroupOwner()) {
+                        mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
+
+                            @Override
+                            public void onSuccess() {
+                                Log.d(TAG, "removeGroup onSuccess -");
+                            }
+
+                            @Override
+                            public void onFailure(int reason) {
+                                Log.d(TAG, "removeGroup onFailure -" + reason);
+                            }
+                        });
+                    }
                 }
             });
         }
-
     }
-}
-void p2pdiscon(View view)
-{
-    Toast.makeText(this, "P2P   Discon", Toast.LENGTH_SHORT).show();
-    if (mManager != null && mChannel != null) {
-        mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
-            @Override
-            public void onGroupInfoAvailable(WifiP2pGroup group) {
-                if (group != null && mManager != null && mChannel != null
-                        && group.isGroupOwner()) {
-                    mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
-
-                        @Override
-                        public void onSuccess() {
-                            Log.d("TAG", "removeGroup onSuccess -");
-                        }
-
-                        @Override
-                        public void onFailure(int reason) {
-                            Log.d("TAG", "removeGroup onFailure -" + reason);
-                        }
-                    });
-                }
-            }
-        });
-    }
-    mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
-        @Override
-        public void onSuccess() {
-            Toast.makeText(MainActivity.this, "Peers Discovery Initiated", Toast.LENGTH_SHORT).show();
-        }
-
-        @Override
-        public void onFailure(int i) {
-
-        }
-    });
-}
-    private BluetoothAdapter mBluetoothAdapter;
-    private boolean mScanning;
-    private Handler mHandler;
-
-    // Stops scanning after 10 seconds.
-    private static final long SCAN_PERIOD = 1000000;
-
-    private void scanLeDevice(final boolean enable) {
-        if (enable) {
-            // Stops scanning after a pre-defined scan period.
-
-            mScanning = true;
-            mBluetoothAdapter.startLeScan(mLeScanCallback);
-        } else {
-            mScanning = false;
-            mBluetoothAdapter.stopLeScan(mLeScanCallback);
-        }
-
-    }
-// Device scan callback.
-private BluetoothAdapter.LeScanCallback mLeScanCallback =
-        new BluetoothAdapter.LeScanCallback() {
-@Override
-public void onLeScan(final BluetoothDevice device, int rssi,
-                     byte[] scanRecord) {
-        runOnUiThread(new Runnable() {
-@Override
-public void run() {
-      //  mLeDeviceListAdapter.addDevice(device);
-       // mLeDeviceListAdapter.notifyDataSetChanged();
-    Toast.makeText(MainActivity.this, "Device "+device.getName()+"found", Toast.LENGTH_SHORT).show();
-        }
-        });
-        }
-        };
 }
