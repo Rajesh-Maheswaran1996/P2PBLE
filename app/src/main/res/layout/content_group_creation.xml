@@ -19,6 +19,7 @@
             android:id="@+id/dname"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:enabled="false"
             android:hint="Device Name"
             android:textAlignment="center" />
 

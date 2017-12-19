@@ -23,6 +23,8 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
 import android.widget.LinearLayout;
@@ -31,6 +33,8 @@ import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashMap;
@@ -78,11 +82,14 @@ public class MainActivity extends AppCompatActivity {
             expListView.setAdapter(listAdapter);
         }
     };
+    private EditText dname;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         final BluetoothManager bluetoothManager =
                 (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
+        mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
 
 
         super.onCreate(savedInstanceState);
@@ -92,38 +99,11 @@ public class MainActivity extends AppCompatActivity {
 
         boolean permission;
         Context context=getApplicationContext();
-        mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
-        mChannel = mManager.initialize(this, getMainLooper(), null);
         wMan = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        wpMan = (WifiP2pManager) getApplicationContext().getSystemService(Context.WIFI_P2P_SERVICE);
-         final IntentFilter intentFilter = new IntentFilter();
-
-        intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
-
-        intentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
-
-        intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
-
-        intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
         macrssi=new HashMap<String, Integer>();
         expListView=(ExpandableListView)findViewById(R.id.el1);
         p2pReceiver p2prec = new p2pReceiver();
-        registerReceiver(p2prec,intentFilter);
-        mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
-            @Override
-            public void onSuccess() {
-                Toast.makeText(MainActivity.this, "Peers Discovery Initiated", Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void onFailure(int i) {
-                Toast.makeText(MainActivity.this, "Peer Discovery Failed", Toast.LENGTH_SHORT).show();
-
-            }
-        });
-disconnect();
-
     }
     void ref(View view) {
         //Snackbar.make(findViewById(R.id.R2), "Wifi Search Initiated", Snackbar.LENGTH_SHORT).show();
@@ -137,6 +117,7 @@ disconnect();
         //b.putSerializable("wifiList", (Serializable) wifiList);
         Intent in = new Intent(this,GroupCreation.class);
         //b.putSerializable("macrssi",macrssi);
+        in.putExtra("dname",dname.getText().toString());
         in.putExtras(b);
         startActivity(in);
     }
@@ -202,11 +183,62 @@ disconnect();
         }
     }
     void host(View view){
-
+        dname=(EditText)findViewById(R.id.dname);
         Intent in = new Intent(this,host.class);
+        in.putExtra("dname",dname.getText().toString());
         startActivity(in);
 
     }
+    void set(View view)
+    {
+        dname=(EditText)findViewById(R.id.dname);
+        mChannel = mManager.initialize(this, getMainLooper(), null);
+        setDeviceName(dname.getText().toString());
+        dname.setEnabled(false);
+        Button b =(Button)findViewById(R.id.Set);
+        b.setEnabled(false);
+
+        wpMan = (WifiP2pManager) getApplicationContext().getSystemService(Context.WIFI_P2P_SERVICE);
+        final IntentFilter intentFilter = new IntentFilter();
+
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
+
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
+
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
+
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
+
+        p2pReceiver p2prec = new p2pReceiver();
+        mChannel = mManager.initialize(this, getMainLooper(), null);
+
+        registerReceiver(p2prec,intentFilter);
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        Toast.makeText(MainActivity.this, "Peers Discovery Initiated", Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onFailure(int i) {
+                        Toast.makeText(MainActivity.this, "Peer Discovery Failed", Toast.LENGTH_SHORT).show();
+
+                    }
+                });
+            }
+        });
+        t.start();
+
+
+
+
+        disconnect();
+    }
+
+
     void checkpermissions(){
 
         if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
@@ -269,5 +301,45 @@ disconnect();
                 }
             });
         }
+    }
+    public void setDeviceName(String devName) {
+        try {
+            Class[] paramTypes = new Class[3];
+            paramTypes[0] = WifiP2pManager.Channel.class;
+            paramTypes[1] = String.class;
+            paramTypes[2] = WifiP2pManager.ActionListener.class;
+            Method setDeviceName = mManager.getClass().getMethod(
+                    "setDeviceName", paramTypes);
+            setDeviceName.setAccessible(true);
+
+            Object arglist[] = new Object[3];
+            arglist[0] = mChannel;
+            arglist[1] = devName;
+            arglist[2] = new WifiP2pManager.ActionListener() {
+
+                @Override
+                public void onSuccess() {
+                    Log.e
+                            ("tag","setDeviceName succeeded");
+                }
+
+                @Override
+                public void onFailure(int reason) {
+                    Log.e("tag","setDeviceName failed");
+                }
+            };
+
+            setDeviceName.invoke(mManager, arglist);
+
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+
     }
 }

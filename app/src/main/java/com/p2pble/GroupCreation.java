@@ -15,6 +15,7 @@ import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pGroup;
+import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -26,6 +27,7 @@ import android.text.format.Formatter;
 import android.util.Log;
 import android.util.MutableChar;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ExpandableListView;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
@@ -80,8 +82,7 @@ public class GroupCreation extends AppCompatActivity implements Serializable {
         public void onPeersAvailable(WifiP2pDeviceList wifiP2pDeviceList) {
             WifiP2pDevice dev;
             devlist=wifiP2pDeviceList;
-         init();
-            /*
+            init();
             listDataHeader = new ArrayList<String>();
             listDataChild = new HashMap<String, List<String>>();
             wMan.startScan();
@@ -96,16 +97,19 @@ public class GroupCreation extends AppCompatActivity implements Serializable {
             }
             listAdapter = new com.p2pble.ExpandableListAdapter(GroupCreation.this, listDataHeader, listDataChild);
 //            expListView.setAdapter(listAdapter);
-            */
+
         }
     };
     private WifiP2pDevice dev;
     private String peerip;
+    private WifiP2pDevice devx;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_group_creation);
+        dname=(EditText)findViewById(R.id.dname);
+        dname.setText(getIntent().getStringExtra("dname"));
         setTitle("Join Group");
         wMan = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
@@ -124,19 +128,28 @@ public class GroupCreation extends AppCompatActivity implements Serializable {
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
         GroupCreation.p2pReceiver p2prec = new GroupCreation.p2pReceiver();
         registerReceiver(p2prec,intentFilter);
-        mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+        Thread t = new Thread(new Runnable() {
             @Override
-            public void onSuccess() {
-                Toast.makeText(GroupCreation.this, "Peers Discovery Initiated", Toast.LENGTH_SHORT).show();
-            }
-            @Override
-            public void onFailure(int i) {
-                Toast.makeText(GroupCreation.this, "Peer Discovery Failed", Toast.LENGTH_SHORT).show();
+            public void run() {
+                wpMan.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        Log.d("WIFIP2P","Peer Discovery Sucessful");
+                    }
 
+                    @Override
+                    public void onFailure(int i) {
+                        Log.d("WIFIP2P","Peer Discovery Failed !" );
+                    }
+                });
+                try {
+                    Thread.sleep(10000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         });
-
-
+        t.start();
         init();
     }
 
@@ -173,53 +186,64 @@ if(devlist!=null){
           {
               WifiP2pConfig config = new WifiP2pConfig();
               config.deviceAddress = dev.deviceAddress;
-              config.wps.setup = WpsInfo.PBC;
               mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
                   @Override
                   public void onSuccess() {
+
+                      mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
+                          @Override
+                          public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
+                              while(!wifiP2pInfo.groupFormed){
+                                  stat.setText("Group not joined !\nFailure");
+                              }
+                              Toast.makeText(GroupCreation.this, "Group Formed !", Toast.LENGTH_SHORT).show();
+                          }
+                      });
+
                       // WiFiDirectBroadcastReceiver will notify us. Ignore for now.
-                      Toast.makeText(GroupCreation.this, "Connected to "+info, Toast.LENGTH_SHORT).show();
+                      Toast.makeText(GroupCreation.this, "Connected cha  to "+info, Toast.LENGTH_SHORT).show();
                         stat.setText("Connected to "+info);
                       dname = (TextView) findViewById(R.id.dname);
                       final String invite = "JOIN-GROUP_" + dname.getText().toString() + "_";
-                      try {
-                          Thread.sleep(4000);
-                      } catch (InterruptedException e) {
-                          e.printStackTrace();
-                      }
-                      try {
 
-                          devip = getDottedDecimalIP(getLocalIPAddress());
-                      }
-                      catch (Exception e){
-                          e.printStackTrace();
-                          Toast.makeText(GroupCreation.this, "Fatal Failure" , Toast.LENGTH_SHORT).show();
-                      }
 
-                      stat.setText("Connected to "+info+"\nIP:"+devip);
-                      // Log.d("IP",getIPFromMac(""));
-                      if(devip.equals("192.168.49.1"))
-                          peerip="192.168.49.10";
-                      else
-                          peerip="192.168.49.1";
-
-                      Thread t = new Thread() {
+//                      stat.setText("Connected to "+info+"\nIP:"+devip);
+//                      // Log.d("IP",getIPFromMac(""));
+//                      if(devip.equals("192.168.49.1"))
+//                          peerip="192.168.49.10";
+//                      else
+//                          peerip="192.168.49.1";
+//
+//                      Thread t = new Thread() {
+//                          @Override
+//                          public void run() {
+//                              try {
+//                                  UdpClientThread send = new UdpClientThread(invite.getBytes(), peerip, 4445);
+//                                  send.start();
+//                                 // Toast.makeText(GroupCreation.this, "Invite sent to "+peerip, Toast.LENGTH_SHORT).show();
+//
+//                              } catch (Exception e) {
+//                              e.printStackTrace();
+//                              }
+//
+//                          }
+//                      };
+//                      t.start();
+//
+//                      stat.setText(stat.getText().toString()+"\nInvite sent to"+peerip);
+                      mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
                           @Override
-                          public void run() {
-                              try {
-                                  UdpClientThread send = new UdpClientThread(invite.getBytes(), peerip, 4445);
-                                  send.start();
-                                 // Toast.makeText(GroupCreation.this, "Invite sent to "+peerip, Toast.LENGTH_SHORT).show();
-
-                              } catch (Exception e) {
-                              e.printStackTrace();
+                          public void onGroupInfoAvailable(WifiP2pGroup wifiP2pGroup) {
+                            if(wifiP2pGroup!=null){
+                              Iterator<WifiP2pDevice> i=wifiP2pGroup.getClientList().iterator();
+                              stat.setText("Connected to :\n");
+                              while(i.hasNext())
+                              {
+                                  devx=i.next();
+                                  stat.setText(stat.getText().toString()+devx.deviceName+"\n");
                               }
-
-                          }
-                      };
-                      t.start();
-
-                      stat.setText(stat.getText().toString()+"\nInvite sent to"+peerip);
+                          }}
+                      });
                   }
 
                   @Override
@@ -230,6 +254,7 @@ if(devlist!=null){
 
                   }
               });
+
           }
       }
 
@@ -248,7 +273,8 @@ if(devlist!=null){
         return networkInfo != null && networkInfo.getState() == NetworkInfo.State.CONNECTED;
     }
     void ref(View view){
-        wMan.startScan();
+        dname = (TextView) findViewById(R.id.dname);
+       setDeviceName(dname.getText().toString());
 
     }
     class wifiReceiver extends BroadcastReceiver implements Serializable {
@@ -364,6 +390,19 @@ if(devlist!=null){
         public void onReceive(Context context, Intent intent) {
             Log.d("P2P","ONRECEIVE");
             String action = intent.getAction();
+            mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
+                @Override
+                public void onGroupInfoAvailable(WifiP2pGroup wifiP2pGroup) {
+                    if(wifiP2pGroup!=null){
+                        Iterator<WifiP2pDevice> i=wifiP2pGroup.getClientList().iterator();
+                        stat.setText("Connected to :\n");
+                        while(i.hasNext())
+                        {
+                            devx=i.next();
+                            stat.setText(stat.getText().toString()+devx.deviceName+"\n");
+                        }
+                    }}
+            });
             if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
                 // Determine if Wifi P2P mode is enabled or not, alert
                 // the Activity.
@@ -379,6 +418,37 @@ if(devlist!=null){
 
             } else if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION.equals(action)) {
                 Toast.makeText(context, "CONNECTION_CHANGED_ACTION", Toast.LENGTH_SHORT).show();
+                NetworkInfo networkInfo = (NetworkInfo) intent
+                        .getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
+
+                if (networkInfo.isConnected()) {
+                    stat.setText("Connected ");
+                    // We are connected with the other device, request connection
+                    // info to find group owner IP
+                    mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
+                        @Override
+                        public void onGroupInfoAvailable(WifiP2pGroup wifiP2pGroup) {
+                            stat=(TextView)findViewById(R.id.stat);
+                            if(wifiP2pGroup!=null){
+                                Iterator<WifiP2pDevice> i=wifiP2pGroup.getClientList().iterator();
+                                stat.setText("Conencted to :\n");
+                                while(i.hasNext())
+                                {
+                                    devx=i.next();
+                                    //nodes.add(devx);
+                                    stat.setText(stat.getText().toString()+"\n"+devx.deviceName);
+                                }
+                            }
+                        }
+                    });
+                    mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
+                        @Override
+                        public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
+                            String oip=wifiP2pInfo.groupOwnerAddress.getHostAddress();
+                        }
+                    });
+                }
+
 
             } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
                 Toast.makeText(context, "THIS_DEVICE_CHANGED_ACTION", Toast.LENGTH_SHORT).show();

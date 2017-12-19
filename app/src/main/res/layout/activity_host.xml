@@ -21,6 +21,7 @@
                 android:id="@+id/SSID"
                 android:layout_width="264dp"
                 android:layout_height="wrap_content"
+                android:enabled="false"
                 android:hint="Group Name"
                 android:text="HelloMoto" />
 
@@ -31,6 +32,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:enabled="false"
             android:onClick="turnon"
             android:text="ToggleButton" />
     </LinearLayout>

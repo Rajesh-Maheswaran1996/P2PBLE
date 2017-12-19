@@ -7,9 +7,13 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.NetworkInfo;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
+import android.net.wifi.p2p.WifiP2pDevice;
+import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pGroup;
+import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -18,6 +22,7 @@ import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ExpandableListView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -44,6 +49,7 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 public class host extends AppCompatActivity implements Serializable {
@@ -62,7 +68,7 @@ public class host extends AppCompatActivity implements Serializable {
     private ListView list;
     List<String> listDataHeader;
     HashMap<String, List<String>> listDataChild;
-    List<String> nodes;
+    List<WifiP2pDevice> nodes;
     HashMap<String, String> macip;
     ExpandableListAdapter listAdapter;
     ExpandableListView expListView;
@@ -76,13 +82,22 @@ public class host extends AppCompatActivity implements Serializable {
     private WifiP2pManager wpMan;
     private static WifiP2pManager.Channel mChannel;
     private TextView stat;
+    private WifiP2pDeviceList devlist;
+    WifiP2pManager.PeerListListener plist=new WifiP2pManager.PeerListListener() {
+        @Override
+        public void onPeersAvailable(WifiP2pDeviceList wifiP2pDeviceList) {
+
+        }
+    };
+    private WifiP2pDevice devx;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_host);
-
+        SSID=(EditText)findViewById(R.id.SSID);
+        SSID.setText(getIntent().getStringExtra("dname"));
         Context context=getApplicationContext();
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
@@ -115,18 +130,29 @@ public class host extends AppCompatActivity implements Serializable {
         nodes=new ArrayList<>();
         host.p2pReceiver p2prec = new host.p2pReceiver();
         registerReceiver(p2prec,intentFilter);
-        mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
-            @Override
-            public void onSuccess() {
-                Toast.makeText(host.this, "Peers Discovery Initiated", Toast.LENGTH_SHORT).show();
-            }
 
-            @Override
-            public void onFailure(int i) {
-                Toast.makeText(host.this, "Peer Discovery Failed", Toast.LENGTH_SHORT).show();
+    Thread t = new Thread(new Runnable() {
+        @Override
+        public void run() {
+                wpMan.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        Log.d("WIFIP2P","Peer Discovery Sucessful");
+                    }
 
+                    @Override
+                    public void onFailure(int i) {
+                        Log.d("WIFIP2P","Peer Discovery Failed !" );
+                    }
+                });
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-        });
+        }
+    });
+    t.start();
     }
 
     void turnon(View view) {
@@ -179,11 +205,11 @@ public class host extends AppCompatActivity implements Serializable {
             wMan.setWifiEnabled(true);
         }
         p1.dismiss();
-        */
+
         myhandler hand=new myhandler(this);
         UdpServerThread receive=new UdpServerThread(4445,hand);
         receive.start();
-
+*/
 
     }
 
@@ -249,7 +275,7 @@ public class host extends AppCompatActivity implements Serializable {
 private void deliver(final String Message, String addr)
 {
     final String address=addr.substring(1);
-    nodes.add(Message);
+
     final String finalAddress = address;
     new AlertDialog.Builder(this)
             .setTitle("Title")
@@ -261,17 +287,13 @@ private void deliver(final String Message, String addr)
                     textResult.setText(textResult.getText().toString()+"\n"+Message);
                     List<String> info=new ArrayList<String>();
                     listDataHeader.add(Message);
-                  info.add(finalAddress);
                     info.add(macip.get(finalAddress));
-                    nameip.put(Message,address);
-                    ipname.put(address,Message);
                     namelist.add(Message);
                     listDataChild.put(listDataHeader.get(listDataHeader.size()-1), info);
                     listAdapter = new ExpandableListAdapter(host.this, listDataHeader, listDataChild);
                     expListView.setAdapter(listAdapter);
-                    UdpClientThread send=new UdpClientThread("_ACCEPT_".getBytes(),address,4445);
-                    send.start();
 
+                    /*
                     disconnect();
                     try {
                         Thread.sleep(2000);
@@ -288,7 +310,9 @@ private void deliver(final String Message, String addr)
 
                         }
                     });
+                */
                 }}
+
             )
             .setNegativeButton("Reject",new DialogInterface.OnClickListener() {
 
@@ -398,25 +422,66 @@ void start(View view) throws InterruptedException {
         public void onReceive(Context context, Intent intent) {
             Log.d("P2P","ONRECEIVE");
             String action = intent.getAction();
-            if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
-                // Determine if Wifi P2P mode is enabled or not, alert
-                // the Activity.
-                Log.d("P2P","STATE_CHANGED_ACTION");
-                Toast.makeText(context, "STATE_CHANGED_ACTION", Toast.LENGTH_SHORT).show();
+            mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
+                @Override
+                public void onGroupInfoAvailable(WifiP2pGroup wifiP2pGroup) {
+                    if(wifiP2pGroup!=null){
+                        Iterator<WifiP2pDevice> i=wifiP2pGroup.getClientList().iterator();
+                        stat.setText("Connected to :\n");
+                        while(i.hasNext())
+                        {
+                            devx=i.next();
+                            stat.setText(stat.getText().toString()+devx.deviceName+"\n");
+                        }
+                    }}
+            });
 
-            } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
+             if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
                 // The peer list has changed!  We should probably do something about
                 // that.
-               // mManager.requestPeers(mChannel,plist);
+                mManager.requestPeers(mChannel,plist);
                 Toast.makeText(context, "PEERS_CHANGED_ACTION", Toast.LENGTH_SHORT).show();
-                Log.d("P2P","PEERS_CHANGED_ACTION");
+                 Log.d("P2P","PEERS_CHANGED_ACTION");
 
             } else if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION.equals(action)) {
-                Toast.makeText(context, "CONNECTION_CHANGED_ACTION", Toast.LENGTH_SHORT).show();
+                 stat=(TextView)findViewById(R.id.stat);
+               // Toast.makeText(context, "CONNECTION_CHANGED_ACTION", Toast.LENGTH_SHORT).show();
+                 NetworkInfo networkInfo = (NetworkInfo) intent
+                         .getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
 
-            } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
-                Toast.makeText(context, "THIS_DEVICE_CHANGED_ACTION", Toast.LENGTH_SHORT).show();
-            }
+                 if (networkInfo.isConnected()) {
+
+                     // We are connected with the other device, request connection
+                     // info to find group owner IP
+
+                     mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
+                         @Override
+                         public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
+                             if(wifiP2pInfo.groupFormed)
+                             {
+                                 wifiP2pInfo.groupOwnerAddress.getHostAddress();
+                             }
+                         }
+                     });
+                 }
+                mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
+                    @Override
+                    public void onGroupInfoAvailable(WifiP2pGroup wifiP2pGroup) {
+                      stat=(TextView)findViewById(R.id.stat);
+                        if(wifiP2pGroup!=null){
+                            Iterator<WifiP2pDevice> i=wifiP2pGroup.getClientList().iterator();
+                            stat.setText("");
+                            while(i.hasNext())
+                            {
+                                devx=i.next();
+                                nodes.add(devx);
+                                stat.setText(stat.getText().toString()+"\n"+devx.deviceName);
+                            }
+                    }
+
+                    }
+                });
+             }
         }
     }
 

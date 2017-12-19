@@ -8,6 +8,32 @@
     tools:context=".MainActivity"
     android:orientation="vertical">
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <android.support.design.widget.TextInputLayout
+            android:layout_width="260dp"
+            android:layout_height="wrap_content">
+
+            <android.support.design.widget.TextInputEditText
+                android:id="@+id/dname"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Device Name" />
+        </android.support.design.widget.TextInputLayout>
+
+        <Button
+            android:id="@+id/Set"
+            android:layout_width="103dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:onClick="set"
+            android:text="Set" />
+
+    </LinearLayout>
+
     <ExpandableListView
         android:id="@+id/el1"
         android:layout_width="match_parent"
