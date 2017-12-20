@@ -81,8 +81,10 @@ public class GroupCreation extends AppCompatActivity implements Serializable {
         @Override
         public void onPeersAvailable(WifiP2pDeviceList wifiP2pDeviceList) {
             WifiP2pDevice dev;
+            //Toast.makeText(GroupCreation.this, "plist !", Toast.LENGTH_SHORT).show();
             devlist=wifiP2pDeviceList;
             init();
+                /*
             listDataHeader = new ArrayList<String>();
             listDataChild = new HashMap<String, List<String>>();
             wMan.startScan();
@@ -97,7 +99,7 @@ public class GroupCreation extends AppCompatActivity implements Serializable {
             }
             listAdapter = new com.p2pble.ExpandableListAdapter(GroupCreation.this, listDataHeader, listDataChild);
 //            expListView.setAdapter(listAdapter);
-
+*/
         }
     };
     private WifiP2pDevice dev;
@@ -128,9 +130,11 @@ public class GroupCreation extends AppCompatActivity implements Serializable {
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
         GroupCreation.p2pReceiver p2prec = new GroupCreation.p2pReceiver();
         registerReceiver(p2prec,intentFilter);
+
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
+                while(true){
                 wpMan.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
                     @Override
                     public void onSuccess() {
@@ -141,22 +145,43 @@ public class GroupCreation extends AppCompatActivity implements Serializable {
                     public void onFailure(int i) {
                         Log.d("WIFIP2P","Peer Discovery Failed !" );
                     }
-                });
+                }
+
+                );
                 try {
                     Thread.sleep(10000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-            }
+            }}
         });
         t.start();
-        init();
+
+        /*
+        wpMan.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        Toast.makeText(GroupCreation.this, "Peer Discovery Sucessful", Toast.LENGTH_SHORT).show();
+                        Log.d("WIFIP2P","Peer Discovery Sucessful");
+                        mManager.requestPeers(mChannel,plist);
+                    }
+
+                    @Override
+                    public void onFailure(int i) {
+                        Toast.makeText(GroupCreation.this, "Peer Discovery Failed!", Toast.LENGTH_SHORT).show();
+                        Log.d("WIFIP2P","Peer Discovery Failed !" );
+                    }
+                }
+
+        );
+*/
+
     }
 
     private void init() {
         sv=(LinearLayout) findViewById(R.id.sv);
         sv.removeAllViews();
-        Snackbar.make(findViewById(R.id.R1),"View Refreshed", Snackbar.LENGTH_SHORT).show();
+       // Snackbar.make(findViewById(R.id.R1),"View Refreshed", Snackbar.LENGTH_SHORT).show();
 
          g1=new RadioGroup(this);
         sv.addView(g1);
@@ -189,21 +214,22 @@ if(devlist!=null){
               mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
                   @Override
                   public void onSuccess() {
+                      stat.setText("Connected to "+dev.deviceName);
 
-                      mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
-                          @Override
-                          public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
-                              while(!wifiP2pInfo.groupFormed){
-                                  stat.setText("Group not joined !\nFailure");
-                              }
-                              Toast.makeText(GroupCreation.this, "Group Formed !", Toast.LENGTH_SHORT).show();
-                          }
-                      });
-
-                      // WiFiDirectBroadcastReceiver will notify us. Ignore for now.
-                      Toast.makeText(GroupCreation.this, "Connected cha  to "+info, Toast.LENGTH_SHORT).show();
-                        stat.setText("Connected to "+info);
-                      dname = (TextView) findViewById(R.id.dname);
+//                      mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
+//                          @Override
+//                          public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
+//                              while(!wifiP2pInfo.groupFormed){
+//                                  stat.setText("Group not joined !\nFailure");
+//                              }
+//                              Toast.makeText(GroupCreation.this, "Group Formed !", Toast.LENGTH_SHORT).show();
+//                          }
+//                      });
+//
+//                      // WiFiDirectBroadcastReceiver will notify us. Ignore for now.
+//                      Toast.makeText(GroupCreation.this, "Connected cha  to "+info, Toast.LENGTH_SHORT).show();
+//                        stat.setText("Connected to "+info);
+//                      dname = (TextView) findViewById(R.id.dname);
                       final String invite = "JOIN-GROUP_" + dname.getText().toString() + "_";
 
 
@@ -231,26 +257,27 @@ if(devlist!=null){
 //                      t.start();
 //
 //                      stat.setText(stat.getText().toString()+"\nInvite sent to"+peerip);
-                      mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
-                          @Override
-                          public void onGroupInfoAvailable(WifiP2pGroup wifiP2pGroup) {
-                            if(wifiP2pGroup!=null){
-                              Iterator<WifiP2pDevice> i=wifiP2pGroup.getClientList().iterator();
-                              stat.setText("Connected to :\n");
-                              while(i.hasNext())
-                              {
-                                  devx=i.next();
-                                  stat.setText(stat.getText().toString()+devx.deviceName+"\n");
-                              }
-                          }}
-                      });
+//                      mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
+//                          @Override
+//                          public void onGroupInfoAvailable(WifiP2pGroup wifiP2pGroup) {
+//                            if(wifiP2pGroup!=null){
+//                              Iterator<WifiP2pDevice> i=wifiP2pGroup.getClientList().iterator();
+//                              stat.setText("Connected to :\n");
+//                              while(i.hasNext())
+//                              {
+//                                  devx=i.next();
+//                                  stat.setText(stat.getText().toString()+devx.deviceName+"\n");
+//                              }
+//                          }}
+//                      });
                   }
 
                   @Override
                   public void onFailure(int reason) {
+                    stat.setText("Connection failed retry");
                       Toast.makeText(GroupCreation.this, "Connect failed. Retry.",
                               Toast.LENGTH_SHORT).show();
-                      stat.setText("Connection Failed "+info);
+                      stat.setText("Connection Failed "+info+reason );
 
                   }
               });
@@ -258,47 +285,15 @@ if(devlist!=null){
           }
       }
 
-        myhandler handler = new myhandler(this);
-        Inviteresponse x = new Inviteresponse(4445,handler,1);
-        x.start();
-    }
-    public static boolean isConnected(Context context) {
-        ConnectivityManager connectivityManager = (ConnectivityManager)
-                context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = null;
-        if (connectivityManager != null) {
-            networkInfo = connectivityManager.getActiveNetworkInfo();
-        }
-
-        return networkInfo != null && networkInfo.getState() == NetworkInfo.State.CONNECTED;
-    }
+//        myhandler handler = new myhandler(this);
+//        Inviteresponse x = new Inviteresponse(4445,handler,1);
+//        x.start();
+//
+ }
     void ref(View view){
         dname = (TextView) findViewById(R.id.dname);
        setDeviceName(dname.getText().toString());
 
-    }
-    class wifiReceiver extends BroadcastReceiver implements Serializable {
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            // TODO: This method is called when the BroadcastReceiver is receiving
-
-            listDataHeader = new ArrayList<String>();
-            listDataChild = new HashMap<String, List<String>>();
-            wifiList = wMan.getScanResults();
-            //List<List<String>> tot = new ArrayList<List<String>>();
-
-            for(int i = 0; i < wifiList.size(); i++){
-                List<String> info=new ArrayList<String>();
-                listDataHeader.add((i+1)+"."+wifiList.get(i).SSID);
-                info.add("MAC:"+wifiList.get(i).BSSID);
-                info.add("RSSI:"+wifiList.get(i).level);
-
-                macrssi.put(wifiList.get(i).BSSID,wifiList.get(i).level);
-                listDataChild.put(listDataHeader.get(i), info);
-            }
-            init();
-        }
     }
     private static HashMap<String, String> nameip;
     private static HashMap<String, String> ipname;
@@ -390,19 +385,7 @@ if(devlist!=null){
         public void onReceive(Context context, Intent intent) {
             Log.d("P2P","ONRECEIVE");
             String action = intent.getAction();
-            mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
-                @Override
-                public void onGroupInfoAvailable(WifiP2pGroup wifiP2pGroup) {
-                    if(wifiP2pGroup!=null){
-                        Iterator<WifiP2pDevice> i=wifiP2pGroup.getClientList().iterator();
-                        stat.setText("Connected to :\n");
-                        while(i.hasNext())
-                        {
-                            devx=i.next();
-                            stat.setText(stat.getText().toString()+devx.deviceName+"\n");
-                        }
-                    }}
-            });
+
             if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
                 // Determine if Wifi P2P mode is enabled or not, alert
                 // the Activity.
@@ -421,7 +404,9 @@ if(devlist!=null){
                 NetworkInfo networkInfo = (NetworkInfo) intent
                         .getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
 
-                if (networkInfo.isConnected()) {
+                if (networkInfo!=null && networkInfo.isConnected()) {
+                    stat=(TextView)findViewById(R.id.stat);
+
                     stat.setText("Connected ");
                     // We are connected with the other device, request connection
                     // info to find group owner IP
@@ -441,15 +426,9 @@ if(devlist!=null){
                             }
                         }
                     });
-                    mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
-                        @Override
-                        public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
-                            String oip=wifiP2pInfo.groupOwnerAddress.getHostAddress();
-                        }
-                    });
+
+
                 }
-
-
             } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
                 Toast.makeText(context, "THIS_DEVICE_CHANGED_ACTION", Toast.LENGTH_SHORT).show();
             }
@@ -496,39 +475,7 @@ if(devlist!=null){
 
     }
 
-    private byte[] getLocalIPAddress() {
-        try {
-            for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
-                NetworkInterface intf = en.nextElement();
-                for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
-                    InetAddress inetAddress = enumIpAddr.nextElement();
-                    if (!inetAddress.isLoopbackAddress()) {
-                        if (inetAddress instanceof Inet4Address) { // fix for Galaxy Nexus. IPv4 is easy to use :-)
-                            return inetAddress.getAddress();
-                        }
-                        //return inetAddress.getHostAddress().toString(); // Galaxy Nexus returns IPv6
-                    }
-                }
-            }
-        } catch (SocketException ex) {
-            //Log.e("AndroidNetworkAddressFactory", "getLocalIPAddress()", ex);
-        } catch (NullPointerException ex) {
-            //Log.e("AndroidNetworkAddressFactory", "getLocalIPAddress()", ex);
-        }
-        return null;
-    }
 
-    private String getDottedDecimalIP(byte[] ipAddr) {
-        //convert to dotted decimal notation:
-        String ipAddrStr = "";
-        for (int i=0; i<ipAddr.length; i++) {
-            if (i > 0) {
-                ipAddrStr += ".";
-            }
-            ipAddrStr += ipAddr[i]&0xFF;
-        }
-        return ipAddrStr;
-    }
     public static void disconnect() {
         if (mManager != null && mChannel != null) {
             mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {

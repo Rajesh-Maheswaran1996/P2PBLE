@@ -131,9 +131,11 @@ public class host extends AppCompatActivity implements Serializable {
         host.p2pReceiver p2prec = new host.p2pReceiver();
         registerReceiver(p2prec,intentFilter);
 
+
     Thread t = new Thread(new Runnable() {
         @Override
         public void run() {
+            while (true){
                 wpMan.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
                     @Override
                     public void onSuccess() {
@@ -150,7 +152,7 @@ public class host extends AppCompatActivity implements Serializable {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-        }
+        }}
     });
     t.start();
     }

@@ -32,7 +32,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
-import static com.p2pble.GroupCreation.isConnected;
 
 public class GroupSelect extends AppCompatActivity implements Serializable {
 
@@ -61,11 +60,12 @@ public class GroupSelect extends AppCompatActivity implements Serializable {
     Button bx;
     HashMap<String,String[]> ipdist;
     HashMap<String,constraint> namecons;
+
     Thread chcon=new Thread(new Runnable() {
         @Override
         public void run() {
             while(true){
-            if(isConnected(GroupSelect.this))
+            if(true)
                 try {
                     Thread.sleep(200);
                 } catch (InterruptedException e) {
@@ -105,14 +105,14 @@ public class GroupSelect extends AppCompatActivity implements Serializable {
                 } catch (InterruptedException e) {
                    e.printStackTrace();
                 }
-                while(!isConnected(getApplicationContext()))
+                while(true)
                     try {
                         Thread.sleep(500);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                UdpClientThread send = new UdpClientThread(("IPUPDATE_"+dName).getBytes(),"192.168.43.1", 4555);
-                send.start();
+              //  UdpClientThread send = new UdpClientThread(("IPUPDATE_"+dName).getBytes(),"192.168.43.1", 4555);
+               // send.start();
             }}
         }
 
