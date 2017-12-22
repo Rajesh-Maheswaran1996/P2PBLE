@@ -1,8 +1,10 @@
 package com.p2pble;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
@@ -51,6 +53,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -66,7 +69,7 @@ public class GroupCreation extends AppCompatActivity implements Serializable {
     LinearLayout sv;
     ExpandableListAdapter listAdapter;
     ExpandableListView expListView;
-    String devip;
+    //String devip;
     List<String> listDataHeader;
     HashMap<String, List<String>> listDataChild;
     private RadioGroup g1;
@@ -76,6 +79,7 @@ public class GroupCreation extends AppCompatActivity implements Serializable {
     private WifiP2pManager wpMan;
     private static WifiP2pManager.Channel mChannel;
     TextView stat;
+    HashMap<String,String>devip = new HashMap<>();
     private WifiP2pDeviceList devlist;
     WifiP2pManager.PeerListListener plist=new WifiP2pManager.PeerListListener() {
         @Override
@@ -105,11 +109,19 @@ public class GroupCreation extends AppCompatActivity implements Serializable {
     private WifiP2pDevice dev;
     private String peerip;
     private WifiP2pDevice devx;
+    private Inviteresponse x;
+    GroupCreation.p2pReceiver p2prec;
+    private WifiP2pDevice mydev;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_group_creation);
+
+        Snackbar.make(findViewById(R.id.R1),"Receiver Initialised !",Snackbar.LENGTH_SHORT).show();
+        myhandler handler = new myhandler(GroupCreation.this);
+        x = new Inviteresponse(4445, handler, 1);
+        x.start();
         dname=(EditText)findViewById(R.id.dname);
         dname.setText(getIntent().getStringExtra("dname"));
         setTitle("Join Group");
@@ -128,7 +140,7 @@ public class GroupCreation extends AppCompatActivity implements Serializable {
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
 
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
-        GroupCreation.p2pReceiver p2prec = new GroupCreation.p2pReceiver();
+       p2prec = new GroupCreation.p2pReceiver();
         registerReceiver(p2prec,intentFilter);
 
         Thread t = new Thread(new Runnable() {
@@ -200,6 +212,24 @@ if(devlist!=null){
     setDeviceName(dname.getText().toString());
         stat=(TextView)findViewById(R.id.stat);
         int radioButtonID = g1.getCheckedRadioButtonId();
+        if(radioButtonID==-1)
+        {
+            AlertDialog.Builder builder;
+                builder = new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert);
+
+            builder.setTitle("Sorry")
+                    .setMessage("Your Menu Just got Refreshed ... \nTry again Soon !")
+                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            // continue with delete
+                        }
+                    })
+
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .show();
+        }
+        else
+        {
         RadioButton radioButton =(RadioButton) g1.findViewById(radioButtonID);
        final String info= radioButton.getText().toString();
       stat.setText("trying to connect to "+info);
@@ -209,12 +239,13 @@ if(devlist!=null){
           dev=(WifiP2pDevice) i.next();
           if(dev.deviceName.equals(info))
           {
-              WifiP2pConfig config = new WifiP2pConfig();
+              final WifiP2pConfig config = new WifiP2pConfig();
               config.deviceAddress = dev.deviceAddress;
+              config.groupOwnerIntent=0;
               mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
                   @Override
                   public void onSuccess() {
-                      stat.setText("Connected to "+dev.deviceName);
+                      //stat.setText("Connected to "+dev.deviceName);
 
 //                      mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
 //                          @Override
@@ -278,27 +309,73 @@ if(devlist!=null){
                       Toast.makeText(GroupCreation.this, "Connect failed. Retry.",
                               Toast.LENGTH_SHORT).show();
                       stat.setText("Connection Failed "+info+reason );
+                      if(reason==2)
+                      {
+                          Thread t = new Thread(new Runnable() {
+                              @Override
+                              public void run() {
+                                  try {
+                                      Thread.sleep(2000);
+                                  } catch (InterruptedException e) {
+                                      e.printStackTrace();
+                                  }
+                                  mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
+
+                                      @Override
+                                      public void onSuccess() {
+                                      }
+
+                                      @Override
+                                      public void onFailure(int i) {
+                                          stat.setText("Connectivity failed !\nPlease try again");
+                                      }
+                                  });
+                              }
+                          });
+                      }
 
                   }
               });
 
           }
-      }
-
-//        myhandler handler = new myhandler(this);
-//        Inviteresponse x = new Inviteresponse(4445,handler,1);
-//        x.start();
-//
+      }}
  }
     void ref(View view){
-        dname = (TextView) findViewById(R.id.dname);
-       setDeviceName(dname.getText().toString());
+        mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
+            @Override
+            public void onGroupInfoAvailable(WifiP2pGroup wifiP2pGroup) {
+                List<String> p = new ArrayList<>();
+                if (wifiP2pGroup.isGroupOwner())
+                {
+                   Iterator<String> i=devip.keySet().iterator();
+                   while(i.hasNext())
+                    p.add(i.next());
 
+                   Log.d("IP-Map",devip.values().toString());
+                Iterator<String> ix=devip.values().iterator();
+                   String message="START";
+                    byte[] bytes = new byte[0];
+
+                        Log.d("SER","Serialized !\n\n\n\n\n\n\n\n\n");
+                    while(ix.hasNext()){
+                        bytes=shift(p).getBytes();
+                    UdpClientThread asd=new UdpClientThread(bytes,ix.next(),4445);
+                    asd.start();
+
+                    }}
+            }
+        });
     }
     private static HashMap<String, String> nameip;
     private static HashMap<String, String> ipname;
 
-    public static class myhandler extends Handler implements Serializable {
+    @Override
+    public void onBackPressed() {
+        unregisterReceiver(p2prec);
+        super.onBackPressed();
+    }
+
+    public class myhandler extends Handler implements Serializable {
         private GroupCreation parent;
         private int ct=0;
         private int dsa=0;
@@ -313,53 +390,47 @@ if(devlist!=null){
         public void handleMessage(Message msg) {
             DatagramPacket packet= (DatagramPacket) msg.obj;
         int io=0;
-                Object m = null;
-                try {
-                    m = parent.deserialize(packet.getData());
-                    if(m instanceof ArrayList)
-                        parent.namelist=(ArrayList)m;
-                    else if (parent.nameip == null)
-                        parent.nameip = (HashMap<String, String>) m;
-                    else
-                        parent.ipname = (HashMap<String, String>) m;
-                    io = 1;
-                    if (ipname != null)
-                        Log.d("RECEIVED HashMap :", ipname.toString());
-                    if(nameip!=null &&ipname!=null)
-                    {   Intent in = new Intent(parent, GroupSelect.class);
-                    Bundle b = new Bundle();
-                    in.putExtra("SEN", false);
-                    in.putExtra("Name", parent.dname.getText().toString());
-                    b.putSerializable("nameip", parent.nameip);
-                    b.putSerializable("ipname", parent.ipname);
-                        b.putSerializable("namelist", (Serializable) parent.namelist);
-                    in.putExtras(b);
-                    parent.startActivity(in);
+            List<String>  group = null;
+            //------------------------------------------------
+            String St = new String(packet.getData());
+            Toast.makeText(parent,St, Toast.LENGTH_SHORT).show();
+            String []a=St.split("_");
+
+            if(a.length>1) {
+                group = deshift(St);
+                Toast.makeText(parent, "deshift", Toast.LENGTH_SHORT).show();
+                AlertDialog.Builder builder;
+                builder = new AlertDialog.Builder(GroupCreation.this, android.R.style.Theme_Material_Dialog_Alert);
+                final List<String> finalGroup = group;
+                builder.setTitle("Confirm Group")
+                        .setMessage("Group Members:" + group.toString())
+                        .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                // continue with delete
+                                Intent in = new Intent(GroupCreation.this, GroupSelect.class);
+                                try {
+                                    in.putExtra("group", serialize(finalGroup));
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                                startActivity(in);
+                            }
+                        })
+
+                        .setIcon(android.R.drawable.ic_dialog_info)
+                        .show();
+            }
+         //---------------------------------------------------
+               else {
+                    String Name = new String(packet.getData());
+                    String addr = packet.getAddress().toString();
+                    addr=addr.substring(1);
+                    Snackbar.make(findViewById(R.id.R1), Name + addr, Snackbar.LENGTH_SHORT).show();
+                    devip.put(Name, addr);
+
                 }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
-        if(io==0){
-                String invite=new String(packet.getData());
-            String address=packet.getAddress().toString();
-            String x[]=invite.split("_");
-            parent.disconnect();
-            parent.wpMan.createGroup(parent.mChannel,null);
-            switch (msg.what) {
-                case 1:
-                    if (x[1].equals("ACCEPT")) {
-                        Toast.makeText(parent, "Invitation Accepted !", Toast.LENGTH_SHORT).show();
-                        parent.stat.setText(parent.stat.getText().toString()+"\nInvitation Accepted !");
-                    dsa++;
-                    }
-                        else if (x[1].equals("REJECT")) {
-                        parent.stat.setText(parent.stat.getText().toString()+"\nInvitation Rejected !");
-                        Toast.makeText(parent, "Invitation Rejected !", Toast.LENGTH_SHORT).show();
-                    }
-            }}
-    }}
+
+        }}
     public static byte[] serialize(Object obj) throws IOException {
 
         try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
@@ -382,32 +453,42 @@ if(devlist!=null){
     class p2pReceiver extends BroadcastReceiver {
 
         @Override
-        public void onReceive(Context context, Intent intent) {
+        public void onReceive(Context context, final Intent intent) {
             Log.d("P2P","ONRECEIVE");
             String action = intent.getAction();
+            NetworkInfo networkInfo = (NetworkInfo) intent
+                    .getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
+            stat = (TextView) findViewById(R.id.stat);
+            if (networkInfo!=null && networkInfo.isConnected()) {
 
-            if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
+                stat.setText(stat.getText().toString()+"\nYou are Connected ");
+            }
+            else {
+                stat.setText("\nNot Connected !");
+            }
+                if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
                 // Determine if Wifi P2P mode is enabled or not, alert
                 // the Activity.
                 Log.d("P2P","STATE_CHANGED_ACTION");
-                Toast.makeText(context, "STATE_CHANGED_ACTION", Toast.LENGTH_SHORT).show();
+               // Toast.makeText(context, "STATE_CHANGED_ACTION", Toast.LENGTH_SHORT).show();
 
             } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
                 // The peer list has changed!  We should probably do something about
                 // that.
                 mManager.requestPeers(mChannel,plist);
-                Toast.makeText(context, "PEERS_CHANGED_ACTION", Toast.LENGTH_SHORT).show();
+             //   Toast.makeText(context, "PEERS_CHANGED_ACTION", Toast.LENGTH_SHORT).show();
                 Log.d("P2P","PEERS_CHANGED_ACTION");
 
             } else if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION.equals(action)) {
-                Toast.makeText(context, "CONNECTION_CHANGED_ACTION", Toast.LENGTH_SHORT).show();
-                NetworkInfo networkInfo = (NetworkInfo) intent
+             //   Toast.makeText(context, "CONNECTION_CHANGED_ACTION", Toast.LENGTH_SHORT).show();
+                networkInfo = (NetworkInfo) intent
                         .getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
 
                 if (networkInfo!=null && networkInfo.isConnected()) {
                     stat=(TextView)findViewById(R.id.stat);
 
                     stat.setText("Connected ");
+
                     // We are connected with the other device, request connection
                     // info to find group owner IP
                     mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
@@ -420,17 +501,30 @@ if(devlist!=null){
                                 while(i.hasNext())
                                 {
                                     devx=i.next();
-                                    //nodes.add(devx);
                                     stat.setText(stat.getText().toString()+"\n"+devx.deviceName);
+                                    Log.d("Connected Devices",devx.deviceName);
                                 }
+                                Log.d("Connected Devices :",wifiP2pGroup.getClientList().toString());
                             }
                         }
                     });
+                        mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
+                            @Override
+                            public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
+                                if (wifiP2pInfo.groupFormed)
+                                {
 
-
+                                    String name=mydev.deviceName;
+                                    UdpClientThread send=new UdpClientThread(name.getBytes(),wifiP2pInfo.groupOwnerAddress.getHostAddress(),4445);
+                                    send.start();
+                                    Snackbar.make(findViewById(R.id.R1),"Pinged with the group owner !",Snackbar.LENGTH_SHORT).show();
+                                }
+                            }
+                        });
                 }
             } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
-                Toast.makeText(context, "THIS_DEVICE_CHANGED_ACTION", Toast.LENGTH_SHORT).show();
+                    mydev = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE);
+               // Toast.makeText(context, "THIS_DEVICE_CHANGED_ACTION", Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -500,5 +594,57 @@ if(devlist!=null){
             });
         }
     }
+    public static String getIPFromMac(String MAC) {
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new FileReader("/proc/net/arp"));
+            String line;
+            while ((line = br.readLine()) != null) {
 
+                String[] splitted = line.split(" +");
+                if (splitted != null && splitted.length >= 4) {
+                    // Basic sanity check
+                    String device = splitted[5];
+                    if (device.matches(".*p2p-p2p0.*")){
+                        String mac = splitted[3];
+                        if (mac.matches(MAC)) {
+                            return splitted[0];
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                br.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+public String shift(List<String> devstore)
+{
+    String z="";
+    //Toast.makeText(this,"DevStore:"+ devstore.toString(), Toast.LENGTH_SHORT).show();
+    Iterator<String> i=devstore.iterator();
+    z=i.next();
+    while(i.hasNext())
+    {
+        z=z.concat("#").concat(i.next());
+    }
+    z=devstore.toString();
+    //List<String> dex_list = new ArrayList<>(z);
+    Toast.makeText(this, "z:"+z, Toast.LENGTH_SHORT).show();
+    Log.d("Z:",z);
+
+    return z;
+}
+    public List<String> deshift(String z)
+    {
+        String[] a=z.split("#");
+        List<String> dex=new ArrayList<String>(Arrays.asList(a));
+        return dex;
+    }
 }
