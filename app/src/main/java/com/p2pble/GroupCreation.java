@@ -646,6 +646,6 @@ public String shift(List<String> devstore)
         String[] a=z.split("#");
         List<String> dex=new ArrayList<String>(Arrays.asList(a));
         return dex;
-        //up
+        //upx
     }
 }
