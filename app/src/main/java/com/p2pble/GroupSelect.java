@@ -144,10 +144,10 @@ public class GroupSelect extends AppCompatActivity implements Serializable {
         wicon=new HashMap<>();
         wMan = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         dName=getIntent().getStringExtra("Name");
-        nameip=(HashMap<String, String>) getIntent().getExtras().getSerializable("nameip");
-        ipname=(HashMap<String, String>) getIntent().getExtras().getSerializable("ipname");
-        ipname=(HashMap<String, String>) getIntent().getExtras().getSerializable("ipname");
-        Log.d(TAG,ipname.toString());
+        //nameip=(HashMap<String, String>) getIntent().getExtras().getSerializable("nameip");
+        //ipname=(HashMap<String, String>) getIntent().getExtras().getSerializable("ipname");
+        //ipname=(HashMap<String, String>) getIntent().getExtras().getSerializable("ipname");
+        //Log.d(TAG,ipname.toString());
         namelist=(List<String>) getIntent().getExtras().getSerializable("namelist");
 
         Log.d("FinalHash:",nameip.toString());

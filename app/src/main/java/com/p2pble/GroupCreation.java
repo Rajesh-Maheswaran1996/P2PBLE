@@ -29,6 +29,7 @@ import android.text.format.Formatter;
 import android.util.Log;
 import android.util.MutableChar;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ExpandableListView;
 import android.widget.LinearLayout;
@@ -45,6 +46,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.DatagramPacket;
@@ -56,8 +58,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 
 public class GroupCreation extends AppCompatActivity implements Serializable {
@@ -73,6 +77,8 @@ public class GroupCreation extends AppCompatActivity implements Serializable {
     List<String> listDataHeader;
     HashMap<String, List<String>> listDataChild;
     private RadioGroup g1;
+    Button b1;
+    Button b2;
     private TextView dname;
     List<String> namelist;
     private static WifiP2pManager mManager;
@@ -125,6 +131,27 @@ public class GroupCreation extends AppCompatActivity implements Serializable {
         dname=(EditText)findViewById(R.id.dname);
         dname.setText(getIntent().getStringExtra("dname"));
         setTitle("Join Group");
+        b1 = (Button) findViewById(R.id.ref);
+        b2 = (Button) findViewById(R.id.submit);
+
+        b1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                ref(view);
+            }
+        });
+
+        b2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                try {
+                    invite(view);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
         wMan = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
@@ -348,21 +375,29 @@ if(devlist!=null){
                 if (wifiP2pGroup.isGroupOwner())
                 {
                    Iterator<String> i=devip.keySet().iterator();
-                   while(i.hasNext())
-                    p.add(i.next());
+                   while(i.hasNext()) {
+                       String tmp = i.next();
+                       p.add(tmp);
+                       Log.d("Devip",tmp);
+                   }
+
+                   String val = shift(p);
 
                    Log.d("IP-Map",devip.values().toString());
+
                 Iterator<String> ix=devip.values().iterator();
                    String message="START";
-                    byte[] bytes = new byte[0];
-
-                        Log.d("SER","Serialized !\n\n\n\n\n\n\n\n\n");
+                    byte[] bytes = new byte[30];
+                    Toast.makeText(getApplicationContext(),p.toString(),Toast.LENGTH_LONG).show();
+                    Log.d("SER","Serialized !");
+                    Log.d("List",val);
                     while(ix.hasNext()){
-                        bytes=shift(p).getBytes();
-                    UdpClientThread asd=new UdpClientThread(bytes,ix.next(),4445);
-                    asd.start();
+                        bytes =val.getBytes();
+                        UdpClientThread asd=new UdpClientThread(bytes,ix.next(),4445);
+                        asd.start();
 
                     }}
+
             }
         });
     }
@@ -374,6 +409,11 @@ if(devlist!=null){
         unregisterReceiver(p2prec);
         super.onBackPressed();
     }
+
+
+
+
+
 
     public class myhandler extends Handler implements Serializable {
         private GroupCreation parent;
@@ -390,15 +430,15 @@ if(devlist!=null){
         public void handleMessage(Message msg) {
             DatagramPacket packet= (DatagramPacket) msg.obj;
         int io=0;
-            List<String>  group = null;
+            List<String> group = null;
             //------------------------------------------------
             String St = new String(packet.getData());
-            Toast.makeText(parent,St, Toast.LENGTH_SHORT).show();
-            String []a=St.split("_");
+            Toast.makeText(parent,"Packet recieved "+St, Toast.LENGTH_LONG).show();
+            String []a=St.split("#");
 
             if(a.length>1) {
                 group = deshift(St);
-                Toast.makeText(parent, "deshift", Toast.LENGTH_SHORT).show();
+                Toast.makeText(parent, "deshift", Toast.LENGTH_LONG).show();
                 AlertDialog.Builder builder;
                 builder = new AlertDialog.Builder(GroupCreation.this, android.R.style.Theme_Material_Dialog_Alert);
                 final List<String> finalGroup = group;
@@ -422,15 +462,21 @@ if(devlist!=null){
             }
          //---------------------------------------------------
                else {
-                    String Name = new String(packet.getData());
+                String Name = null;
+                try {
+                    Name = new String(packet.getData(),"UTF-8").trim();
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+                Log.d("Name_finally called",Name);
                     String addr = packet.getAddress().toString();
                     addr=addr.substring(1);
-                    Snackbar.make(findViewById(R.id.R1), Name + addr, Snackbar.LENGTH_SHORT).show();
+                    Snackbar.make(findViewById(R.id.R1), Name + addr, Snackbar.LENGTH_LONG).show();
                     devip.put(Name, addr);
-
                 }
 
         }}
+
     public static byte[] serialize(Object obj) throws IOException {
 
         try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
@@ -515,6 +561,7 @@ if(devlist!=null){
                                 {
 
                                     String name=mydev.deviceName;
+                                    Log.d("Who knew the name",name);
                                     UdpClientThread send=new UdpClientThread(name.getBytes(),wifiP2pInfo.groupOwnerAddress.getHostAddress(),4445);
                                     send.start();
                                     Snackbar.make(findViewById(R.id.R1),"Pinged with the group owner !",Snackbar.LENGTH_SHORT).show();
@@ -627,16 +674,18 @@ if(devlist!=null){
 public String shift(List<String> devstore)
 {
     String z="";
-    //Toast.makeText(this,"DevStore:"+ devstore.toString(), Toast.LENGTH_SHORT).show();
+//    Toast.makeText(this,"DevStore:"+ devstore.toString(), Toast.LENGTH_LONG).show();
+    Log.d("Device",devstore.toString());
     Iterator<String> i=devstore.iterator();
     z=i.next();
     while(i.hasNext())
     {
         z=z.concat("#").concat(i.next());
     }
-    z=devstore.toString();
+    //z=devstore.toString();
+
     //List<String> dex_list = new ArrayList<>(z);
-    Toast.makeText(this, "z:"+z, Toast.LENGTH_SHORT).show();
+    Toast.makeText(this, "z:"+z, Toast.LENGTH_LONG).show();
     Log.d("Z:",z);
 
     return z;
@@ -644,7 +693,8 @@ public String shift(List<String> devstore)
     public List<String> deshift(String z)
     {
         String[] a=z.split("#");
-        List<String> dex=new ArrayList<String>(Arrays.asList(a));
+        //List<String> dex=new ArrayList<String>(Arrays.asList(a));
+        List<String> dex = new ArrayList<>(Arrays.asList(a));
         return dex;
         //upx
     }

@@ -49,7 +49,7 @@ public class Inviteresponse  extends Thread {
                     InetAddress address = packet.getAddress();
                     int port = packet.getPort();
                     String[] ob=new String[10];
-                    ob[0]=   new String(packet.getData());
+                    ob[0]=   new String(packet.getData()).trim();
                     Log.e(TAG,"Packet Received:"+ob[0]);
                     handler.sendMessage(Message.obtain(handler,type,packet));
                 }

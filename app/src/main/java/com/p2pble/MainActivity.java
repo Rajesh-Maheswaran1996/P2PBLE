@@ -48,6 +48,9 @@ public class MainActivity extends AppCompatActivity {
     List<ScanResult> wifiList;
     TextView tv;
     StringBuilder sb;
+    Button b1;
+    Button b2;
+    Button b3;
     ExpandableListAdapter listAdapter;
     ExpandableListView expListView;
     List<String> listDataHeader;
@@ -96,6 +99,31 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         setTitle("Available Hosts");
         checkpermissions();
+
+
+        b1 = (Button) findViewById(R.id.Set);
+        b1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                set(view);
+            }
+        });
+
+        b2 = (Button) findViewById(R.id.host);
+        b2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                host(view);
+            }
+        });
+
+        b3 = (Button) findViewById(R.id.button);
+        b3.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                addgroup(view);
+            }
+        });
 
         boolean permission;
         Context context=getApplicationContext();
