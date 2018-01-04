@@ -93,6 +93,8 @@ public class GroupCreation extends AppCompatActivity implements Serializable {
             WifiP2pDevice dev;
             //Toast.makeText(GroupCreation.this, "plist !", Toast.LENGTH_SHORT).show();
             devlist=wifiP2pDeviceList;
+
+
             init();
                 /*
             listDataHeader = new ArrayList<String>();
@@ -432,7 +434,7 @@ if(devlist!=null){
         int io=0;
             List<String> group = null;
             //------------------------------------------------
-            String St = new String(packet.getData());
+            String St = new String(packet.getData()).trim();
             Toast.makeText(parent,"Packet recieved "+St, Toast.LENGTH_LONG).show();
             String []a=St.split("#");
 
@@ -448,6 +450,9 @@ if(devlist!=null){
                             public void onClick(DialogInterface dialog, int which) {
                                 // continue with delete
                                 Intent in = new Intent(GroupCreation.this, GroupSelect.class);
+                                Bundle b = new Bundle();
+                                b.putSerializable("devip",devip);
+                                //b.putSerializable("devlist", (Serializable) devlist);
                                 try {
                                     in.putExtra("group", serialize(finalGroup));
                                 } catch (IOException e) {

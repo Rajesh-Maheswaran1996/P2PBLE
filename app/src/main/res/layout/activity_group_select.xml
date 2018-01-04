@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    tools:context="com.p2pble.GroupSelect"
     android:orientation="vertical">
 
 
@@ -14,14 +15,9 @@
         android:text="Rotation"
         android:textSize="24sp"
         android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:layout_marginTop="11dp"
-        android:layout_alignTop="@+id/txt1"
-        android:layout_toStartOf="@+id/stop"
-        android:layout_marginEnd="12dp" />
+
+        android:layout_alignTop="@+id/deg"
+        android:layout_alignStart="@+id/txt1" />
 
     <TextView
         android:id="@+id/txt1"
@@ -30,18 +26,15 @@
         android:text="Steps"
         android:textSize="24sp"
         android:textStyle="bold"
-        android:layout_above="@+id/mypath"
-        android:layout_alignStart="@+id/mypath"
-        android:layout_marginStart="18dp"
-        android:layout_marginBottom="69dp" />
+        android:layout_centerVertical="true"
+        android:layout_toEndOf="@+id/mypath" />
 
     <Button
         android:id="@+id/start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/reset"
-        android:layout_alignBottom="@+id/reset"
-        android:layout_toStartOf="@+id/reset"
+        android:layout_above="@+id/reset"
+        android:layout_toEndOf="@+id/path"
         android:enabled="false"
         android:onClick="start"
         android:text="Start" />
@@ -50,10 +43,10 @@
         android:id="@+id/stop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/reset"
-        android:layout_alignBottom="@+id/reset"
-        android:layout_alignParentEnd="true"
-        android:enabled="false"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="11dp"
+        android:layout_marginStart="33dp"
+        android:layout_toEndOf="@+id/step"
         android:onClick="stop"
         android:text="Stop" />
 
@@ -61,39 +54,40 @@
         android:id="@+id/reset"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="22dp"
-        android:onClick="chtype"
-        android:text="Convert"
         android:layout_alignParentBottom="true"
-        android:layout_toStartOf="@+id/stop" />
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="22dp"
+        android:layout_marginStart="28dp"
+        android:onClick="reset"
+        android:text="reset" />
 
     <TextView
         android:id="@+id/status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Press Start to record"
-        android:layout_above="@+id/tx1"
-        android:layout_toEndOf="@+id/mypath" />
+        android:layout_centerVertical="true"
+        android:layout_toEndOf="@+id/path" />
 
     <Button
         android:id="@+id/step"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="step"
+        android:layout_below="@+id/start"
+        android:layout_marginStart="29dp"
+        android:layout_toEndOf="@+id/reset"
         android:onClick="add"
-        android:layout_alignBaseline="@+id/start"
-        android:layout_alignBottom="@+id/start"
-        android:layout_toStartOf="@+id/start" />
+        android:text="step" />
 
     <TextView
         android:id="@+id/mypath"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
         android:text="mypath"
-        android:layout_above="@+id/step"
-        android:layout_toStartOf="@+id/start"
-        android:layout_marginEnd="11dp" />
+        android:layout_alignBaseline="@+id/step"
+        android:layout_alignBottom="@+id/step"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="42dp" />
 
     <TextView
         android:id="@+id/path"
@@ -106,18 +100,19 @@
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:srcCompat="@drawable/map"
-        android:layout_above="@+id/status"
-        android:layout_marginBottom="141dp"
-        android:layout_alignParentEnd="true" />
+        android:layout_height="130dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentTop="true"
+        android:layout_weight="0.14"
+        android:background="@drawable/csels" />
+
 
     <TextView
         android:id="@+id/deg"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBottom="@+id/mypath"
-        android:layout_marginStart="22dp"
-        android:layout_toEndOf="@+id/txt1"
-        android:text="TextView" />
+        android:text="TextView"
+        android:layout_below="@+id/txt1"
+        android:layout_alignEnd="@+id/status"
+        android:layout_marginTop="69dp" />
 </RelativeLayout>
