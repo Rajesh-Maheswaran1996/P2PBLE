@@ -455,6 +455,7 @@ if(devlist!=null){
                                 //b.putSerializable("devlist", (Serializable) devlist);
                                 try {
                                     in.putExtra("group", serialize(finalGroup));
+                                    in.putExtras(b);
                                 } catch (IOException e) {
                                     e.printStackTrace();
                                 }

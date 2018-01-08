@@ -1,8 +1,10 @@
 package com.p2pble;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
@@ -132,7 +134,7 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
         x=0;
         y=0;
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        for (int i=0;i<2;i++){
+        for (int i=0;i<3;i++){
             paint[i] = new Paint();
         }
         bx=(Button)findViewById(R.id.start);
@@ -185,6 +187,7 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
 
         //devlist = (WifiP2pDeviceList) getIntent().getExtras().get("devlist");
         devip = (HashMap<String,String>) getIntent().getExtras().get("devip");
+        Log.d("Devip-1",devip.toString());
 
 
         imageView = (ImageView)findViewById(R.id.imageView);
@@ -198,8 +201,8 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
         paint[0].setColor(Color.BLUE);
         paint[1].setAntiAlias(true);
         paint[1].setColor(Color.RED);
-//        paint[2].setAntiAlias(true);
-//        paint[2].setColor(Color.YELLOW);
+        paint[2].setAntiAlias(true);
+        paint[2].setColor(Color.YELLOW);
 //        paint[3].setAntiAlias(true);
 //        paint[3].setColor(Color.BLACK);
         workingBitmap = Bitmap.createBitmap(bitmap);
@@ -209,6 +212,7 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 canvas = new Canvas(mutableBitmap);
+
 
                 if(cnt==4) {
                     // Toast.makeText(getApplicationContext(),"if",Toast.LENGTH_SHORT).show();
@@ -222,7 +226,16 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
                 }
                 else if(cnt==3)
                 {
-                    cnt--;
+                    AlertDialog.Builder builder;
+                    builder = new AlertDialog.Builder(GroupSelect.this,R.style.Theme_AppCompat_DayNight_Dialog_Alert);
+                    builder.setTitle("Coordinates").setMessage("x: "+ix+"y: "+iy).setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            cnt--;
+                        }
+                    }).setIcon(android.R.drawable.ic_dialog_info)
+                            .show();
+
                 }
                 else if (cnt==2) {
                     //  Toast.makeText(getApplicationContext(),"else",Toast.LENGTH_SHORT).show();
@@ -247,7 +260,7 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
                 imageView.setImageBitmap(mutableBitmap);
 
                 // mutableBitmap = workingBitmap.copy(Bitmap.Config.ARGB_8888, true);
-                //Toast.makeText(MainActivity.this, String.valueOf(cnt), Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), String.valueOf(cnt), Toast.LENGTH_SHORT).show();
 
                 return true;
             }
@@ -272,24 +285,8 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
 
             myhandler hand = new myhandler(this);
             receive=new getrssi(4555,hand,0);
-            //receive.start(); //Todo remove comments after sensor is working
-            t = new Thread() {
-                @Override
-                public void run() {
-                    try {
-                        while(true){
-                            Iterator<String> it= devip.values().iterator();
-                            while(it.hasNext()) {
-                                UdpClientThread send = new UdpClientThread((String.valueOf(x) + "_" + String.valueOf(y)).getBytes(),it.next(), 4455);
-                                send.start();
-                            }
-                            Thread.sleep(2000);
-                        }
-                    } catch (Exception e) {
-                    }
-                }
-            };
-            //t.start(); //Todo remove comments after sensor is working
+            receive.start(); //Todo remove comments after sensor is working
+
 
     }
     void stop(View view)
@@ -347,7 +344,7 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
         //double vel = (double) (event.values[2]) * 180 / Math.PI;
         if(event.sensor.getType()==Sensor.TYPE_GYROSCOPE) {
             double vel = (double) (event.values[1]) * 180 / Math.PI;
-            Log.d("Gyro", Float.toString(event.values[0]));
+            //Log.d("Gyro", Float.toString(event.values[0]));
             time = System.currentTimeMillis() - ts;
             ts = System.currentTimeMillis();
             time /= 1000;
@@ -375,10 +372,10 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
     public void step(long timeNs) throws IOException {
         numSteps++;
         txt1.setText("Steps"+numSteps);
-        File dir = new File(android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/IMU");
-        dir.mkdirs();
-        File file = new File(dir, "IMUDATA" +
-                ".txt");
+//        File dir = new File(android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/IMU");
+//        dir.mkdirs();
+//        File file = new File(dir, "IMUDATA" +
+//                ".txt");
         chng=deg-temp;
         temp=deg;
         theta = theta+chng;
@@ -388,14 +385,31 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
             theta+=360;
         x+=0.69*Math.cos(Math.toRadians(theta));
         y+=0.69*Math.sin(Math.toRadians(theta));
-
         mypath.setText(Math.round(x)+"  "+Math.round(y));
         degree.setText(""+theta);
-        FileOutputStream fileOutputStream = new FileOutputStream(file, true);
-        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream);
-        outputStreamWriter.write(0.69+" "+ deg+"\n");
-        outputStreamWriter.close();
-        fileOutputStream.close();
+        t = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    while(true){
+                        Iterator<String> it= devip.values().iterator();
+                        while(it.hasNext()) {
+                            UdpClientThread send = new UdpClientThread((String.valueOf(x) + "_" + String.valueOf(y)).getBytes(),it.next(), 4555);
+                            send.start();
+
+                        }
+                        Thread.sleep(2000);
+                    }
+                } catch (Exception e) {
+                }
+            }
+        };
+        t.start(); //Todo remove comments after sensor is working
+//        FileOutputStream fileOutputStream = new FileOutputStream(file, true);
+//        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream);
+//        outputStreamWriter.write(0.69+" "+ deg+"\n");
+//        outputStreamWriter.close();
+//        fileOutputStream.close();
     }
     public static class myhandler extends Handler {
         private GroupSelect parent;
@@ -410,9 +424,10 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
             DatagramPacket packet = (DatagramPacket) msg.obj;
             //    switch(msg.what){
             //       case 0 :
-            String invite=new String(packet.getData());
+            String invite=new String(packet.getData()).trim();
             //String address=packet.getAddress().toString();
             String x[]=invite.split("_");
+            Log.d("Coordinates","X: "+x[0]+"Y "+x[1]);
             parent.path.setText(Long.toString(Math.round(Double.parseDouble(x[0])))+"    "+Long.toString(Math.round(Double.parseDouble(x[1]))));
             parent.ipdist.put(packet.getAddress().toString(),x);
             Collection<String[]> arr =parent.ipdist.values();
@@ -427,6 +442,7 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
                 parent.a = Float.parseFloat(y[0]);
                 parent.b = Float.parseFloat(y[1]);
                 parent.canvas.drawCircle(parent.a * 10, parent.b * 10, 15, parent.paint[i]);
+                //ite.next();
             }
             //parent.canvas.drawCircle(parent.x*10,parent.y*10,15,parent.paint[3]);
             parent.imageView.setAdjustViewBounds(true);
