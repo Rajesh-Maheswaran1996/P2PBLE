@@ -36,12 +36,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.net.DatagramPacket;
+import java.security.Timestamp;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -79,7 +81,6 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
     private String peerip;
     private WifiP2pDevice devx;
     private Inviteresponse x1;
-    GroupCreation.p2pReceiver p2prec;
     private WifiP2pDevice mydev;
     private WifiP2pDeviceList devlist;
     private static WifiP2pManager mManager;
@@ -98,32 +99,32 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
     private Double temp=0.0;
     private double chng;
 
-//    WifiP2pManager.PeerListListener plist=new WifiP2pManager.PeerListListener() {
-//        @Override
-//        public void onPeersAvailable(WifiP2pDeviceList wifiP2pDeviceList) {
-//            WifiP2pDevice dev;
-//            //Toast.makeText(GroupCreation.this, "plist !", Toast.LENGTH_SHORT).show();
-//            devlist=wifiP2pDeviceList;
-//            //init();
-//                /*
-//            listDataHeader = new ArrayList<String>();
-//            listDataChild = new HashMap<String, List<String>>();
-//            wMan.startScan();
-//            Iterator<WifiP2pDevice> i= wifiP2pDeviceList.getDeviceList().iterator();
-//            List<String>info = new ArrayList<>();
-//            while(i.hasNext()){
-//                info = new ArrayList<>();
-//                dev=i.next();
-//                info.add(dev.deviceAddress);
-//                listDataHeader.add(dev.deviceName);
-//                listDataChild.put(dev.deviceName, info);
-//            }
-//            listAdapter = new com.p2pble.ExpandableListAdapter(GroupCreation.this, listDataHeader, listDataChild);
-////            expListView.setAdapter(listAdapter);
-//*/
-//        }
-//    };
-
+    WifiP2pManager.PeerListListener plist=new WifiP2pManager.PeerListListener() {
+        @Override
+        public void onPeersAvailable(WifiP2pDeviceList wifiP2pDeviceList) {
+            WifiP2pDevice dev;
+            //Toast.makeText(GroupCreation.this, "plist !", Toast.LENGTH_SHORT).show();
+            devlist=wifiP2pDeviceList;
+            //init();
+                /*
+            listDataHeader = new ArrayList<String>();
+            listDataChild = new HashMap<String, List<String>>();
+            wMan.startScan();
+            Iterator<WifiP2pDevice> i= wifiP2pDeviceList.getDeviceList().iterator();
+            List<String>info = new ArrayList<>();
+            while(i.hasNext()){
+                info = new ArrayList<>();
+                dev=i.next();
+                info.add(dev.deviceAddress);
+                listDataHeader.add(dev.deviceName);
+                listDataChild.put(dev.deviceName, info);
+            }
+            listAdapter = new com.p2pble.ExpandableListAdapter(GroupCreation.this, listDataHeader, listDataChild);
+//            expListView.setAdapter(listAdapter);
+*/
+        }
+    };
+//GroupSelect.p2pReceiver p2prec;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,7 +135,7 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
         x=0;
         y=0;
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        for (int i=0;i<3;i++){
+        for (int i=0;i<4;i++){
             paint[i] = new Paint();
         }
         bx=(Button)findViewById(R.id.start);
@@ -152,6 +153,23 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
         ts = System.currentTimeMillis();
         gy=0.0;
         gy1=0.0;
+
+        mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
+        mChannel = mManager.initialize(this, getMainLooper(), null);
+        wpMan = (WifiP2pManager) getApplicationContext().getSystemService(Context.WIFI_P2P_SERVICE);
+
+//        final IntentFilter intentFilter = new IntentFilter();
+//
+//        intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
+//
+//        intentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
+//
+//        intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
+//
+//        intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
+//        p2prec = new p2pReceiver();
+//        registerReceiver(p2prec,intentFilter);
+
 
         bx.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -187,7 +205,7 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
 
         //devlist = (WifiP2pDeviceList) getIntent().getExtras().get("devlist");
         devip = (HashMap<String,String>) getIntent().getExtras().get("devip");
-        Log.d("Devip-1",devip.toString());
+
 
 
         imageView = (ImageView)findViewById(R.id.imageView);
@@ -203,8 +221,8 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
         paint[1].setColor(Color.RED);
         paint[2].setAntiAlias(true);
         paint[2].setColor(Color.YELLOW);
-//        paint[3].setAntiAlias(true);
-//        paint[3].setColor(Color.BLACK);
+        paint[3].setAntiAlias(true);
+        paint[3].setColor(Color.BLACK);
         workingBitmap = Bitmap.createBitmap(bitmap);
         mutableBitmap = workingBitmap.copy(Bitmap.Config.ARGB_8888, true);
 
@@ -246,6 +264,12 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
                     cnt--;
 
                     theta=Math.round(Math.toDegrees(Math.atan((fy-iy)/(fx-ix))));
+                    if(fx>ix&&fy>iy)
+                        theta+=360;
+                    else if(fy>iy &&fx<ix)
+                        theta+=180;
+                    else if(fx<ix && fy<iy)
+                        theta=180+theta;
                     //if(fx>ix&&fy>iy)
                     //  theta+=360;
                     //else if(fy>iy &&fx<ix)
@@ -269,6 +293,7 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
     }
     getrssi receive;
     Thread t;
+    Thread t1;
     void start(View view)
     {
         st.setText("**Recording**");
@@ -357,6 +382,27 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
             //Toast.makeText(this, "Sensing"+Double.toString(vel), Toast.LENGTH_SHORT).show();
             //deg = deg+theta;
             tx.setText("Rotation: " + Math.round(deg) + " degrees");
+            chng=deg-temp;
+            temp=deg;
+            if(fy>iy+10) {
+                theta = (theta - chng);
+            }
+            else if(fy+10<iy){
+                theta=(theta-chng);
+            }
+
+            else if(fx>ix){
+                theta=theta-chng;
+            }
+            else if(fx<ix){
+                theta=theta+chng;
+            }
+            if(theta>360)
+                theta=theta%360;
+            else if(theta<-360)
+                theta+=360;
+
+            degree.setText(""+theta);
 
         }
 
@@ -367,50 +413,72 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
     }
-
+Thread t4;
     @Override
     public void step(long timeNs) throws IOException {
         numSteps++;
         txt1.setText("Steps"+numSteps);
-//        File dir = new File(android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/IMU");
-//        dir.mkdirs();
-//        File file = new File(dir, "IMUDATA" +
-//                ".txt");
-        chng=deg-temp;
-        temp=deg;
-        theta = theta+chng;
-        if(theta>360)
-            theta=theta%360;
-        else if(theta<-360)
-            theta+=360;
         x+=0.69*Math.cos(Math.toRadians(theta));
         y+=0.69*Math.sin(Math.toRadians(theta));
         mypath.setText(Math.round(x)+"  "+Math.round(y));
         degree.setText(""+theta);
-        t = new Thread() {
-            @Override
-            public void run() {
-                try {
-                    while(true){
-                        Iterator<String> it= devip.values().iterator();
-                        while(it.hasNext()) {
-                            UdpClientThread send = new UdpClientThread((String.valueOf(x) + "_" + String.valueOf(y)).getBytes(),it.next(), 4555);
-                            send.start();
 
+
+        Log.d("Devip-1",devip.toString());
+        mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
+            @Override
+            public void onGroupInfoAvailable(final WifiP2pGroup wifiP2pGroup) {
+                if(wifiP2pGroup.isGroupOwner()){
+                    t = new Thread() {
+                        @Override
+                        public void run() {
+                            try {
+                                while(true){
+
+                                    Iterator<String> it= devip.values().iterator();
+                                    while(it.hasNext()) {
+                                        UdpClientThread send = new UdpClientThread((String.valueOf(x) + "_" + String.valueOf(y)).getBytes(),it.next(), 4555);
+                                        send.start();
+
+                                    }
+                                    Thread.sleep(2000);
+                                }
+                            } catch (Exception e) {
+                            }
                         }
-                        Thread.sleep(2000);
-                    }
-                } catch (Exception e) {
+                    };
+                    t.start(); //Todo remove comments after sensor is working
+                }
+                else{
+                    mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
+                        @Override
+                        public void onConnectionInfoAvailable(final WifiP2pInfo wifiP2pInfo) {
+                            t1 = new Thread() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        while(true) {
+                                            UdpClientThread send = new UdpClientThread((String.valueOf(x) + "_" + String.valueOf(y)).getBytes(), wifiP2pInfo.groupOwnerAddress.getHostAddress(), 4555);
+                                            UdpClientThread sendself = new UdpClientThread((String.valueOf(x) + "_" + String.valueOf(y)).getBytes(), "", 4555);
+                                            send.start();
+                                            sendself.start();
+
+                                            Thread.sleep(2000);
+                                        }
+                                    } catch (Exception e) {
+                                    }
+                                }
+                            };
+                            t1.start(); //Todo remove comments after sensor is working
+                        }
+                    });
+
+
                 }
             }
-        };
-        t.start(); //Todo remove comments after sensor is working
-//        FileOutputStream fileOutputStream = new FileOutputStream(file, true);
-//        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream);
-//        outputStreamWriter.write(0.69+" "+ deg+"\n");
-//        outputStreamWriter.close();
-//        fileOutputStream.close();
-    }
+        });
+
+}
     public static class myhandler extends Handler {
         private GroupSelect parent;
 
@@ -425,9 +493,10 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
             //    switch(msg.what){
             //       case 0 :
             String invite=new String(packet.getData()).trim();
-            //String address=packet.getAddress().toString();
+            String address=packet.getAddress().toString();
             String x[]=invite.split("_");
             Log.d("Coordinates","X: "+x[0]+"Y "+x[1]);
+            Log.d("Address",address);
             parent.path.setText(Long.toString(Math.round(Double.parseDouble(x[0])))+"    "+Long.toString(Math.round(Double.parseDouble(x[1]))));
             parent.ipdist.put(packet.getAddress().toString(),x);
             Collection<String[]> arr =parent.ipdist.values();
@@ -554,9 +623,6 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
 //            }
 //        }
 //    }
-
-
-
 
 
 }
