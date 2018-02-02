@@ -3,6 +3,10 @@ package com.p2pble;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.le.AdvertiseCallback;
+import android.bluetooth.le.AdvertiseData;
+import android.bluetooth.le.AdvertiseSettings;
+import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -17,6 +21,7 @@ import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.ParcelUuid;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -35,11 +40,13 @@ import android.widget.Toast;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
     private static final int MY_PERMISSIONS_REQUEST_READ_CONTACTS = 0;
@@ -89,17 +96,15 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
         final BluetoothManager bluetoothManager =
                 (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
-
-
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
         setTitle("Available Hosts");
         checkpermissions();
-
+        advertise();
 
         b1 = (Button) findViewById(R.id.Set);
         b1.setOnClickListener(new View.OnClickListener() {
@@ -210,6 +215,41 @@ public class MainActivity extends AppCompatActivity {
             expListView.setAdapter(listAdapter);
         }
     }
+
+    private void advertise() {
+        BluetoothLeAdvertiser advertiser = BluetoothAdapter.getDefaultAdapter().getBluetoothLeAdvertiser();
+
+        AdvertiseSettings settings = new AdvertiseSettings.Builder()
+                .setAdvertiseMode( AdvertiseSettings.ADVERTISE_MODE_BALANCED )
+                .setTxPowerLevel( AdvertiseSettings.ADVERTISE_TX_POWER_HIGH )
+                .setConnectable(false)
+                .build();
+
+        ParcelUuid pUuid = new ParcelUuid( UUID.fromString( getString( R.string.ble_uuid ) ) );
+        AdvertiseData data = new AdvertiseData.Builder()
+                .setIncludeDeviceName( true )
+                .addServiceData( pUuid, "hi".getBytes(Charset.forName("UTF-8") ) )
+                .build();
+
+        AdvertiseCallback advertisingCallback = new AdvertiseCallback() {
+            @Override
+            public void onStartSuccess(AdvertiseSettings settingsInEffect) {
+                super.onStartSuccess(settingsInEffect);
+                Toast.makeText(getApplicationContext(),"CallBack called",Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onStartFailure(int errorCode) {
+                Log.e( "BLE", "Advertising onStartFailure: " + errorCode );
+                super.onStartFailure(errorCode);
+            }
+        };
+
+        advertiser.startAdvertising( settings, data, advertisingCallback );
+        Toast.makeText(this,"Advertisement started",Toast.LENGTH_SHORT).show();
+    }
+
+
     void host(View view){
         dname=(EditText)findViewById(R.id.dname);
         Intent in = new Intent(this,host.class);

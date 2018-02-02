@@ -114,4 +114,12 @@
         android:layout_below="@+id/txt1"
         android:layout_alignEnd="@+id/status"
         android:layout_marginTop="69dp" />
+
+    <Button
+        android:id="@+id/button2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/reset"
+        android:layout_alignStart="@+id/mypath"
+        android:text="File_Write" />
 </RelativeLayout>

@@ -44,6 +44,7 @@ import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.net.DatagramPacket;
 import java.security.Timestamp;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -66,9 +67,18 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
     Bitmap workingBitmap;
     Paint[] paint = new Paint[4];
 
+    File dir;
+    File file;
+    FileOutputStream fileOutputStream = null;
+    OutputStreamWriter outputStreamWriter;
+
     long ts ;
     double time;
     Double deg=0.0,gy,gy1;
+
+    ArrayList<Float> final_x;
+    ArrayList<Float> final_y;
+
 
     float x,y;
     float a,b;
@@ -94,6 +104,7 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
     Button b_stop;
     Button b_reset;
     Button b_step;
+    Button b_track;
     HashMap<String,String> devip;
     HashMap<String,String[]>ipdist;
     private Double temp=0.0;
@@ -138,10 +149,13 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
         for (int i=0;i<4;i++){
             paint[i] = new Paint();
         }
+        final_x = new ArrayList<>();
+        final_y = new ArrayList<>();
         bx=(Button)findViewById(R.id.start);
         b_reset = (Button) findViewById(R.id.reset);
         b_stop = (Button) findViewById(R.id.stop);
         b_step = (Button) findViewById(R.id.step);
+        b_track = (Button) findViewById(R.id.button2);
         tx=(TextView)findViewById(R.id.tx1);
         txt1=(TextView)findViewById(R.id.txt1);
         st=(TextView)findViewById(R.id.status);
@@ -200,6 +214,17 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
             @Override
             public void onClick(View view) {
                 reset(view);
+            }
+        });
+
+        b_track.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                try {
+                    track(view);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
 
@@ -291,6 +316,28 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
         });
 
     }
+
+    void track(View view) throws IOException{
+       Iterator<Float> ite_x = final_x.iterator();
+       Iterator<Float> ite_y = final_y.iterator();
+        dir = new File(android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/IMU");
+        dir.mkdirs();
+        file = new File(dir, "IMUDATA1.txt");
+        fileOutputStream = new FileOutputStream(file, true);
+        outputStreamWriter = new OutputStreamWriter(fileOutputStream);
+
+       while(ite_x.hasNext()){
+           float temp_x = ite_x.next();
+           float temp_y = ite_y.next();
+           outputStreamWriter.write(""+temp_x+" "+temp_y+"\n");
+       }
+        outputStreamWriter.close();
+        fileOutputStream.close();
+        Toast.makeText(this,"File written",Toast.LENGTH_SHORT).show();
+    }
+
+
+
     getrssi receive;
     Thread t;
     Thread t1;
@@ -320,6 +367,7 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
         mSensorManager.unregisterListener(this);
         t.stop();
         receive.socket.close();
+
     }
     void reset(View view)
     {
@@ -344,7 +392,7 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
         File file = new File(dir, "IMUDATA.txt");
         FileOutputStream fileOutputStream = new FileOutputStream(file, true);
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream);
-        outputStreamWriter.write(0.69+" " + deg+"\n");
+        outputStreamWriter.write(0.65+" " + deg+"\n");
         outputStreamWriter.close();
         fileOutputStream.close();
 
@@ -413,16 +461,19 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
     }
-Thread t4;
+
     @Override
     public void step(long timeNs) throws IOException {
         numSteps++;
         txt1.setText("Steps"+numSteps);
-        x+=0.69*Math.cos(Math.toRadians(theta));
-        y+=0.69*Math.sin(Math.toRadians(theta));
+        x+=0.65*Math.cos(Math.toRadians(theta));
+        y+=0.65*Math.sin(Math.toRadians(theta));
         mypath.setText(Math.round(x)+"  "+Math.round(y));
         degree.setText(""+theta);
 
+
+        final_x.add(x);
+        final_y.add(y);
 
         Log.d("Devip-1",devip.toString());
         mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
@@ -479,6 +530,7 @@ Thread t4;
         });
 
 }
+    Thread t4;
     public static class myhandler extends Handler {
         private GroupSelect parent;
 
@@ -487,6 +539,7 @@ Thread t4;
             this.parent=parent;
         }
 
+
         @Override
         public void handleMessage(Message msg) {
             DatagramPacket packet = (DatagramPacket) msg.obj;
@@ -494,7 +547,7 @@ Thread t4;
             //       case 0 :
             String invite=new String(packet.getData()).trim();
             String address=packet.getAddress().toString();
-            String x[]=invite.split("_");
+            final String x[]=invite.split("_");
             Log.d("Coordinates","X: "+x[0]+"Y "+x[1]);
             Log.d("Address",address);
             parent.path.setText(Long.toString(Math.round(Double.parseDouble(x[0])))+"    "+Long.toString(Math.round(Double.parseDouble(x[1]))));
@@ -518,10 +571,9 @@ Thread t4;
             parent.imageView.setImageBitmap(parent.mutableBitmap);
             parent.mutableBitmap = parent.workingBitmap.copy(Bitmap.Config.ARGB_8888, true);
 
+        }}
 
-
-
-            /*break;
+        /*break;
                 case 1 :
 
                     try {
@@ -541,7 +593,9 @@ Thread t4;
                         e.printStackTrace();
                     }
             }*/
-        }}
+
+
+
 
 
 //    class p2pReceiver extends BroadcastReceiver {
