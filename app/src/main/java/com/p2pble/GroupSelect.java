@@ -2,6 +2,12 @@ package com.p2pble;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanFilter;
+import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -25,8 +31,10 @@ import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.ParcelUuid;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -49,6 +57,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 
 public class GroupSelect extends AppCompatActivity implements Serializable,SensorEventListener,StepListener {
@@ -66,7 +75,11 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
     Bitmap mutableBitmap;
     Bitmap workingBitmap;
     Paint[] paint = new Paint[4];
-
+    private BluetoothLeScanner mBluetoothLeScanner;
+    private Handler mHandler = new Handler();
+    public ScanCallback mScanCallback;
+    HashMap<String,Integer> name_rssi;
+    TextView mText;
     File dir;
     File file;
     FileOutputStream fileOutputStream = null;
@@ -105,6 +118,7 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
     Button b_reset;
     Button b_step;
     Button b_track;
+    Button b_discover;
     HashMap<String,String> devip;
     HashMap<String,String[]>ipdist;
     private Double temp=0.0;
@@ -156,6 +170,7 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
         b_stop = (Button) findViewById(R.id.stop);
         b_step = (Button) findViewById(R.id.step);
         b_track = (Button) findViewById(R.id.button2);
+        b_discover = (Button) findViewById(R.id.button3);
         tx=(TextView)findViewById(R.id.tx1);
         txt1=(TextView)findViewById(R.id.txt1);
         st=(TextView)findViewById(R.id.status);
@@ -164,9 +179,12 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
         numSteps=0;
         mypath=(TextView)findViewById(R.id.mypath);
         path=(TextView)findViewById(R.id.path);
+        mText=(TextView) findViewById(R.id.rssi);
         ts = System.currentTimeMillis();
         gy=0.0;
         gy1=0.0;
+        mBluetoothLeScanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
+        name_rssi = new HashMap<>();
 
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
@@ -225,6 +243,13 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+            }
+        });
+
+        b_discover.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                discover(view);
             }
         });
 
@@ -338,6 +363,8 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
 
 
 
+
+
     getrssi receive;
     Thread t;
     Thread t1;
@@ -397,6 +424,69 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
         fileOutputStream.close();
 
     }
+
+    void discover(View view){
+        ScanFilter filter = new ScanFilter.Builder()
+                .setServiceUuid( new ParcelUuid(UUID.fromString( getString(R.string.ble_uuid ) ) ) )
+                .build();
+        List<ScanFilter> filters = new ArrayList<ScanFilter>();
+        filters.add( filter );
+
+        ScanSettings settings = new ScanSettings.Builder()
+                .setScanMode( ScanSettings.SCAN_MODE_BALANCED )
+                .build();
+
+        mScanCallback = new ScanCallback() {
+            @Override
+            public void onScanResult(int callbackType, ScanResult result) {
+                super.onScanResult(callbackType, result);
+                Toast.makeText(getApplicationContext(),"onScanResult is called",Toast.LENGTH_SHORT).show();
+                if( result == null
+                        || result.getDevice() == null
+                        || TextUtils.isEmpty(result.getDevice().getName()) ) {
+                    Toast.makeText(getApplicationContext(),"",Toast.LENGTH_SHORT).show();
+                }
+
+                else {
+                    //Toast.makeText(getApplicationContext(),""+result.getDevice().getName()+":"+result.getRssi(),Toast.LENGTH_SHORT).show();
+                    String temp =mText.getText().toString();
+                    mText.setText("");
+                    mText.setText(temp+"\n"+result.getDevice().getName()+":"+result.getRssi());
+                    //name_rssi.put(result.getDevice().getName(),result.getRssi());
+                    //Log.v("HashMap",name_rssi.toString());
+                }
+            }
+
+            @Override
+            public void onBatchScanResults(List<ScanResult> results) {
+                super.onBatchScanResults(results);
+                Toast.makeText(getApplicationContext(),"onBatchScanResult is called",Toast.LENGTH_SHORT).show();
+                Iterator<ScanResult> ite = results.iterator();
+                while(ite.hasNext()){
+                    Toast.makeText(getApplicationContext(),ite.next().getDevice().getName()+" "+ite.next().getRssi()+"",Toast.LENGTH_SHORT).show();
+                }
+
+            }
+
+            @Override
+            public void onScanFailed(int errorCode) {
+                Log.e( "BLE", "Discovery onScanFailed: " + errorCode );
+                super.onScanFailed(errorCode);
+            }
+        };
+
+        mBluetoothLeScanner.startScan(mScanCallback);
+        Toast.makeText(this,"Scan has started",Toast.LENGTH_SHORT).show();
+
+//        mHandler.postDelayed(new Runnable() {
+//            @Override
+//            public void run() {
+//                mBluetoothLeScanner.stopScan(mScanCallback);
+//            }
+//        }, 5000);
+
+    }
+
     @Override
     protected void onPause()
     {
