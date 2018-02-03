@@ -361,10 +361,6 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
         Toast.makeText(this,"File written",Toast.LENGTH_SHORT).show();
     }
 
-
-
-
-
     getrssi receive;
     Thread t;
     Thread t1;
@@ -660,6 +656,8 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
             parent.imageView.setAdjustViewBounds(true);
             parent.imageView.setImageBitmap(parent.mutableBitmap);
             parent.mutableBitmap = parent.workingBitmap.copy(Bitmap.Config.ARGB_8888, true);
+
+
 
         }}
 
