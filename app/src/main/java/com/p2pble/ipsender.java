@@ -8,29 +8,31 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
-import java.util.Collection;
-import java.util.HashMap;
 
 import static android.content.ContentValues.TAG;
 
+/**
+ * Created by rajeshmaheswaran on 08/02/18.
+ */
 
-public class getrssi extends Thread {
+public class ipsender extends Thread {
 
-    int serverPort;
+    int serverport;
     DatagramSocket socket;
-    GroupSelect.myhandler handler;
-    boolean running;
+    GroupSelect.iphandler handler;
     int type;
-    public getrssi(int serverPort, GroupSelect.myhandler handler,int type) {
-        super();
-        this.serverPort = serverPort;
-        this.handler=handler;
-        this.type=type;
+    boolean running;
+
+    public ipsender(int serverport, GroupSelect.iphandler rssi, int type){
+        this.serverport = serverport;
+        this.handler = rssi;
+        this.type = type;
     }
+
     @Override
     public void run() {
         try {
-            socket = new DatagramSocket(serverPort);
+            socket = new DatagramSocket(serverport);
         } catch (SocketException e) {
             e.printStackTrace();
         }
@@ -49,8 +51,6 @@ public class getrssi extends Thread {
                 ob[0]=   new String(packet.getData()).trim();
                 Log.e(TAG,"Packet Received:"+ob[0]);
                 handler.sendMessage(Message.obtain(handler,type,packet));
-
-
             }
             Log.e(TAG, "UDP Server ended");
         } catch (SocketException e) {

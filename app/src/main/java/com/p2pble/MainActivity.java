@@ -371,6 +371,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     public void setDeviceName(String devName) {
+
+       mBluetoothAdapter.setName(devName);
+
         try {
             Class[] paramTypes = new Class[3];
             paramTypes[0] = WifiP2pManager.Channel.class;

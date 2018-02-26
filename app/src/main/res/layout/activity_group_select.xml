@@ -34,7 +34,7 @@
         android:layout_height="wrap_content"
         android:layout_alignBaseline="@+id/button2"
         android:layout_alignBottom="@+id/button2"
-        android:layout_centerHorizontal="true"
+        android:layout_toEndOf="@+id/txt1"
         android:enabled="false"
         android:onClick="start"
         android:text="Start" />
@@ -43,10 +43,10 @@
         android:id="@+id/stop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_marginBottom="11dp"
-        android:layout_marginStart="33dp"
-        android:layout_toEndOf="@+id/step"
+        android:layout_alignBaseline="@+id/mypath"
+        android:layout_alignBottom="@+id/mypath"
+        android:layout_alignStart="@+id/deg"
+        android:layout_marginStart="13dp"
         android:onClick="stop"
         android:text="Stop" />
 
@@ -65,17 +65,17 @@
         android:id="@+id/status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Press Start to record"
-        android:layout_centerVertical="true"
-        android:layout_toEndOf="@+id/path" />
+        android:layout_alignBaseline="@+id/txt1"
+        android:layout_alignBottom="@+id/txt1"
+        android:layout_alignStart="@+id/path"
+        android:text="Press Start to record" />
 
     <Button
         android:id="@+id/step"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_alignStart="@+id/start"
         android:layout_below="@+id/start"
-        android:layout_marginStart="29dp"
-        android:layout_toEndOf="@+id/reset"
         android:onClick="add"
         android:text="step" />
 
@@ -95,7 +95,7 @@
         android:layout_height="wrap_content"
         android:layout_alignBaseline="@+id/rssi"
         android:layout_alignBottom="@+id/rssi"
-        android:layout_marginStart="15dp"
+        android:layout_marginStart="17dp"
         android:layout_toEndOf="@+id/start"
         android:text="path" />
 
@@ -114,8 +114,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_above="@+id/button3"
-        android:layout_alignStart="@+id/button3"
-        android:layout_marginBottom="27dp"
+        android:layout_alignStart="@+id/path"
+        android:layout_marginBottom="28dp"
         android:text="TextView" />
 
     <Button
@@ -140,7 +140,15 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_above="@+id/tx1"
-        android:layout_alignEnd="@+id/txt1"
+        android:layout_alignStart="@+id/tx1"
         android:layout_marginBottom="22dp"
         android:text="RSSI values" />
+
+    <Button
+        android:id="@+id/button4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/status"
+        android:text="Calc" />
 </RelativeLayout>

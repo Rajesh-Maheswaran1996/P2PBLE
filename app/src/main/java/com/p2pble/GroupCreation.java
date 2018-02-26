@@ -570,7 +570,7 @@ if(devlist!=null){
                                     Log.d("Who knew the name",name);
                                     UdpClientThread send=new UdpClientThread(name.getBytes(),wifiP2pInfo.groupOwnerAddress.getHostAddress(),4445);
                                     send.start();
-                                    Snackbar.make(findViewById(R.id.R1),"Pinged with the group owner !",Snackbar.LENGTH_SHORT).show();
+                                    Snackbar.make(findViewById(R.id.R1),"Pinged with the group owner !",Snackbar.LENGTH_LONG).show();
                                 }
                             }
                         });
