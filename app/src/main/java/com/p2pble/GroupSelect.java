@@ -742,11 +742,18 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
                         public void run() {
                             try {
                                 while (true) {
-
+                                    Iterator<String> name_it = devip.keySet().iterator();
                                     Iterator<String> it = devip.values().iterator();
                                     while (it.hasNext()) {
-                                        UdpClientThread send = new UdpClientThread((String.valueOf(x) + "_" + String.valueOf(y) + "_" + mydev.deviceName).getBytes(), it.next(), 4555);
-                                        send.start();
+                                        String dev = name_it.next();
+                                        int rssi = name_rssi.get(dev);
+                                        if(rssi<70) {
+                                            UdpClientThread send = new UdpClientThread((String.valueOf(x) + "_" + String.valueOf(y) + "_" + mydev.deviceName).getBytes(), it.next(), 4555);
+                                            send.start();
+                                        }
+                                        else{
+                                            continue;
+                                        }
                                     }
                                     Thread.sleep(2000);
                                 }
@@ -767,13 +774,19 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
                                         while (true) {
 
                                             Iterator<String> ite = devip_for_nodes.values().iterator();
+                                            Iterator<String> name_ite = devip_for_nodes.keySet().iterator();
 
                                             while(ite.hasNext()) {
-                                                UdpClientThread send = new UdpClientThread((String.valueOf(x) + "_" + String.valueOf(y) + "_" + mydev.deviceName).getBytes(), ite.next() , 4555);
-                                                send.start();
+                                                String name = name_ite.next();
+                                                int rssi = name_rssi.get(name);
+                                                if(rssi<70) {
+                                                    UdpClientThread send = new UdpClientThread((String.valueOf(x) + "_" + String.valueOf(y) + "_" + mydev.deviceName).getBytes(), ite.next(), 4555);
+                                                    send.start();
+                                                }
+                                                else{
+                                                    continue;
+                                                }
                                             }
-//                                            UdpClientThread sendself = new UdpClientThread((String.valueOf(x) + "_" + String.valueOf(y) + "_" + mydev.deviceName).getBytes(), "", 4555);
-//                                            sendself.start();
                                             Thread.sleep(2000);
                                         }
                                     } catch (Exception e) {
@@ -837,6 +850,8 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
             parent.mutableBitmap = parent.workingBitmap.copy(Bitmap.Config.ARGB_8888, true);
 
         }
+
+
     }
 
 

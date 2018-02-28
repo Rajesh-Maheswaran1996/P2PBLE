@@ -234,7 +234,8 @@ if(devlist!=null){
         c1.setText(dev.deviceName);
         g1.addView(c1);
     }
-    }}
+    }
+    }
     void invite(View view) throws InterruptedException {
         dname = (TextView) findViewById(R.id.dname);
 
