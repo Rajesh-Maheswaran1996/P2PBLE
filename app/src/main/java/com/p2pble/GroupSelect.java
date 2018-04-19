@@ -298,6 +298,7 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
         }
 
 
+
         imageView = (ImageView) findViewById(R.id.imageView);
         BitmapFactory.Options myOptions = new BitmapFactory.Options();
         myOptions.inDither = true;
@@ -742,19 +743,15 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
                         public void run() {
                             try {
                                 while (true) {
-                                    Iterator<String> name_it = devip.keySet().iterator();
+                                    //Iterator<String> name_it = devip.keySet().iterator();
                                     Iterator<String> it = devip.values().iterator();
                                     while (it.hasNext()) {
-                                        String dev = name_it.next();
-                                        int rssi = name_rssi.get(dev);
-                                        if(rssi<70) {
+                                        //String dev = name_it.next();
+                                        //int rssi = name_rssi.get(dev);
                                             UdpClientThread send = new UdpClientThread((String.valueOf(x) + "_" + String.valueOf(y) + "_" + mydev.deviceName).getBytes(), it.next(), 4555);
                                             send.start();
-                                        }
-                                        else{
-                                            continue;
-                                        }
                                     }
+                                    //Policy float c = 100.00/rssi
                                     Thread.sleep(2000);
                                 }
                             } catch (Exception e) {
@@ -774,19 +771,27 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
                                         while (true) {
 
                                             Iterator<String> ite = devip_for_nodes.values().iterator();
-                                            Iterator<String> name_ite = devip_for_nodes.keySet().iterator();
+                                            //Iterator<String> name_ite = devip_for_nodes.keySet().iterator();
 
                                             while(ite.hasNext()) {
-                                                String name = name_ite.next();
-                                                int rssi = name_rssi.get(name);
-                                                if(rssi<70) {
+                                                //String name = name_ite.next();
+                                                //int rssi = name_rssi.get(name);
                                                     UdpClientThread send = new UdpClientThread((String.valueOf(x) + "_" + String.valueOf(y) + "_" + mydev.deviceName).getBytes(), ite.next(), 4555);
                                                     send.start();
-                                                }
-                                                else{
-                                                    continue;
-                                                }
+//                                                    mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
+//                                                        @Override
+//                                                        public void onSuccess() {
+//                                                            Toast.makeText(getApplicationContext(),"Im out",Toast.LENGTH_LONG).show();
+//                                                        }
+//
+//                                                        @Override
+//                                                        public void onFailure(int i) {
+//
+//                                                        }
+//                                                    });
+
                                             }
+                                            //Policy float c = 100.00/rssi
                                             Thread.sleep(2000);
                                         }
                                     } catch (Exception e) {
@@ -805,6 +810,9 @@ public class GroupSelect extends AppCompatActivity implements Serializable,Senso
     }
 
     Thread t4;
+
+
+
 
     public static class myhandler extends Handler {
         private GroupSelect parent;
